@@ -40,18 +40,17 @@ def _active(p):
 
 
 def price_list():
-    """Produk prabayar (kategori yang dijual) + pascabayar."""
+    """Semua produk prabayar yang sedang aktif di Digiflazz (semua kategori) + pascabayar."""
     res = _post("/price-list", {"cmd": "prepaid", "username": config.DIGIFLAZZ_USERNAME, "sign": _sign("pricelist")})
     data = res.get("data")
     if not isinstance(data, list):
         msg = data.get("message") if isinstance(data, dict) else str(res)
         raise net.NetError(f"Gagal ambil daftar harga: {msg}")
-    wanted = set(CATEGORIES.values())
     items = [{
         "code": p["buyer_sku_code"], "supplier_sku": p["buyer_sku_code"], "name": p["product_name"],
         "category": p["category"], "brand": p["brand"], "base_price": int(float(p["price"])),
         "descr": p.get("desc", ""), "kind": "prepaid",
-    } for p in data if p.get("category") in wanted and _active(p)]
+    } for p in data if p.get("category") and _active(p)]
 
     try:
         res = _post("/price-list", {"cmd": "pasca", "username": config.DIGIFLAZZ_USERNAME, "sign": _sign("pricelist")})

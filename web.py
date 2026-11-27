@@ -903,6 +903,8 @@ def admin_home(req):
             f"<div class=kpi><small>Omzet hari ini</small><div class=v>{rp(d['omzet'])}</div><div class=s>{d['trx']} transaksi "
             f"sukses</div></div><div class=kpi><small>Deposit masuk</small><div class=v>{rp(d['deposit'])}</div>"
             f"<div class=s>hari ini</div></div>"
+            f"<div class=kpi><small>Laba belum ditarik</small><div class=v>{rp(db.profit_summary()['left'])}</div>"
+            f"<div class=s>aman untuk Anda ambil</div></div>"
             f"<div class=kpi><small>Saldo member</small><div class=v>{rp(d['saldo_member'])}</div><div class=s>{d['users']} member, "
             f"{d['new_users']} baru</div></div><div class=kpi><small>Gagal hari ini</small><div class=v>{d['gagal']}</div>"
             f"<div class=s>saldo sudah dikembalikan</div></div><div class=kpi><small>Pending</small><div class=v>{d['pending']}"

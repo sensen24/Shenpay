@@ -96,6 +96,13 @@ CREATE TABLE IF NOT EXISTS deposits (
     updated_at   INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE IF NOT EXISTS profit_withdrawals (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    amount     INTEGER NOT NULL,
+    note       TEXT,
+    admin_id   INTEGER,
+    created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS web_sessions (
     token      TEXT PRIMARY KEY,
     tg_id      INTEGER NOT NULL,
@@ -413,6 +420,30 @@ def search_products(q="", limit=200, include_hidden=False):
 def set_admin_off(code, off):
     return conn().execute("UPDATE catalog SET admin_off=? WHERE code=? COLLATE NOCASE",
                           (1 if off else 0, code)).rowcount
+
+
+def categories():
+    """[(kategori, jumlah produk)] yang sedang tersedia."""
+    return [(r["category"], r["n"]) for r in conn().execute(
+        f"SELECT category, COUNT(*) n FROM catalog WHERE {VISIBLE} GROUP BY category")]
+
+
+def profit_summary():
+    c = conn()
+    total = c.execute("SELECT COALESCE(SUM(sell_price-base_price-commission),0) FROM transactions "
+                      "WHERE status='Sukses'").fetchone()[0]
+    taken = c.execute("SELECT COALESCE(SUM(amount),0) FROM profit_withdrawals").fetchone()[0]
+    return {"total": total, "taken": taken, "left": total - taken,
+            "saldo_member": c.execute("SELECT COALESCE(SUM(balance),0) FROM users").fetchone()[0]}
+
+
+def add_withdrawal(amount, note, admin_id):
+    conn().execute("INSERT INTO profit_withdrawals(amount,note,admin_id,created_at) VALUES(?,?,?,?)",
+                   (amount, note, admin_id, now()))
+
+
+def withdrawals(limit=10):
+    return conn().execute("SELECT * FROM profit_withdrawals ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
 
 
 def count_products():

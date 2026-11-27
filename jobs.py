@@ -29,7 +29,8 @@ def report_text(start, title="📊 Laporan Harian"):
              f"📈 Laba bersih: <b>{rp(s['laba'])}</b> (komisi dibayar {rp(s['komisi'])})",
              f"➕ Deposit masuk: {rp(s['deposit'])}",
              f"👥 Member baru: {s['new_users']} • Total: {s['users']}",
-             f"💰 Total saldo member: {rp(s['saldo_member'])}",
+             f"🏦 Saldo titipan member: {rp(s['saldo_member'])}",
+             f"✅ Laba belum ditarik (total): <b>{rp(db.profit_summary()['left'])}</b>",
              f"⏳ Pending sekarang: {s['pending']}"]
     top = db.top_products(start)
     if top:

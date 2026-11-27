@@ -23,11 +23,38 @@ BRAND_PAGE = 18
 _sessions = {}
 _lock = threading.Lock()
 
-MENU = [["📱 Pulsa", "🌐 Paket Data"], ["⚡ Token PLN", "💳 E-Wallet"], ["🎮 Game", "🧾 Tagihan"],
-        ["💰 Saldo", "➕ Deposit"], ["📜 Riwayat", "👥 Downline"], ["⚙️ Akun", "ℹ️ Bantuan"]]
-ADMIN_MENU = MENU + [["🛠 Admin"]]
-LABEL = {"Pulsa": "📱 Pulsa", "Data": "🌐 Paket Data", "PLN": "⚡ Token PLN", "E-Money": "💳 E-Wallet",
-         "Games": "🎮 Game", "Pascabayar": "🧾 Tagihan"}
+BASE_MENU = [["💰 Saldo", "➕ Deposit"], ["📜 Riwayat", "👥 Downline"], ["⚙️ Akun", "ℹ️ Bantuan"]]
+# Nama & ikon kategori Digiflazz. Kategori baru yang tidak ada di sini tetap tampil dengan ikon 🛍.
+CAT_STYLE = {
+    "Pulsa": ("📱", "Pulsa"), "Data": ("🌐", "Paket Data"), "PLN": ("⚡", "Token PLN"),
+    "E-Money": ("💳", "E-Wallet"), "Games": ("🎮", "Game"), "Pascabayar": ("🧾", "Tagihan"),
+    "Voucher": ("🎟", "Voucher"), "Masa Aktif": ("⏳", "Masa Aktif"), "Paket SMS & Telpon": ("📞", "SMS & Telpon"),
+    "Streaming": ("🎬", "Streaming"), "TV": ("📺", "TV"), "Aktivasi Voucher": ("🎫", "Aktivasi Voucher"),
+    "Aktivasi Perdana": ("📶", "Aktivasi Perdana"), "eSIM": ("📲", "eSIM"), "Gas": ("🔥", "Gas"),
+    "Bundling": ("🎁", "Bundling"), "Media Sosial": ("💬", "Media Sosial"),
+}
+CAT_ORDER = ["Pulsa", "Data", "PLN", "E-Money", "Games", "Pascabayar", "Masa Aktif", "Paket SMS & Telpon",
+             "Voucher", "Streaming", "TV", "eSIM", "Aktivasi Voucher", "Aktivasi Perdana"]
+DEFAULT_CATS = ["Pulsa", "Data", "PLN", "E-Money", "Games", "Pascabayar"]
+NUMBER_FIRST = ("Pulsa", "Data", "PLN")          # nomor dulu, operator dideteksi otomatis
+PHONE_CATS = ("Pulsa", "Data", "E-Money", "Masa Aktif", "Paket SMS & Telpon", "Aktivasi Perdana")
+
+
+def label(cat):
+    icon, name = CAT_STYLE.get(cat, ("🛍", cat))
+    return f"{icon} {name}"
+
+
+def shop_categories():
+    cats = [c for c, _ in db.categories()]
+    if not cats:
+        return list(DEFAULT_CATS)
+    return sorted(cats, key=lambda c: (CAT_ORDER.index(c) if c in CAT_ORDER else 99, c))
+
+
+def menu_rows():
+    labels = [label(c) for c in shop_categories()]
+    return [labels[i:i + 2] for i in range(0, len(labels), 2)] + BASE_MENU
 
 PREFIX = {
     ("TELKOMSEL", "BY.U", "BYU"): ["0811", "0812", "0813", "0821", "0822", "0823", "0851", "0852", "0853"],
@@ -51,7 +78,14 @@ def is_admin(uid):
 
 
 def menu_for(uid):
-    return ADMIN_MENU if is_admin(uid) else MENU
+    rows = menu_rows()
+    return rows + [["🛠 Admin"]] if is_admin(uid) else rows
+
+
+def open_category(uid, cat):
+    if cat in NUMBER_FIRST:
+        return start_number(uid, cat)
+    return start_brand(uid, cat)
 
 
 def sess(uid):
@@ -140,13 +174,10 @@ def on_message(m):
         cmd, arg = (re.split(r"\s", text, maxsplit=1) + [""])[:2]
         return on_command(uid, name, cmd.split("@")[0].lower(), arg.strip())
 
+    cats = {label(c): c for c in set(shop_categories()) | set(DEFAULT_CATS)}
+    if text in cats:
+        return open_category(uid, cats[text])
     routes = {
-        "📱 Pulsa": lambda: start_number(uid, "Pulsa"),
-        "🌐 Paket Data": lambda: start_number(uid, "Data"),
-        "⚡ Token PLN": lambda: start_number(uid, "PLN"),
-        "💳 E-Wallet": lambda: start_brand(uid, "E-Money"),
-        "🎮 Game": lambda: start_brand(uid, "Games"),
-        "🧾 Tagihan": lambda: start_brand(uid, "Pascabayar"),
         "💰 Saldo": lambda: show_balance(uid),
         "➕ Deposit": lambda: start_deposit(uid),
         "📜 Riwayat": lambda: show_history(uid),
@@ -168,6 +199,9 @@ def on_message(m):
         sn = "" if text.strip() in ("-", "0") else text.strip()[:120]
         ok, out = service.admin_success(ref, sn, uid)
         return tg.send(uid, out)
+    if step == "tarik_laba" and is_admin(uid):
+        reset(uid)
+        return record_withdrawal(uid, int(re.sub(r"\D", "", text) or 0), "")
     if step == "shop_name":
         reset(uid)
         db.set_user_field(uid, "shop_name", text[:40])
@@ -176,7 +210,7 @@ def on_message(m):
     if "." in text or text.upper() in ("SAL", "SALDO", "FORMAT"):
         if quick(uid, text, m["message_id"]):
             return
-    tg.send(uid, "Silakan pilih menu di bawah 👇", reply_kb=menu_for(uid))
+    tg.send(uid, "🤖 Silakan pilih menu di bawah 👇", reply_kb=menu_for(uid))
 
 
 def on_command(uid, name, cmd, arg):
@@ -185,7 +219,7 @@ def on_command(uid, name, cmd, arg):
         u = db.get_user(uid)
         text = (f"👋 Selamat datang di <b>{html.escape(config.STORE_NAME)}</b>!\n\n"
                 f"💰 Saldo: <b>{rp(u['balance'])}</b>\n🏅 Level: {LEVEL_LABEL[u['level']]}\n"
-                f"🆔 ID: <code>{uid}</code>\n\nPilih menu di bawah 👇")
+                f"🆔 ID: <code>{uid}</code>\n\n🛍 Pilih produk atau menu di bawah 👇")
         png = banner.welcome_png()
         if png and tg.photo_file(uid, png, caption=text, filename="selamat-datang.png", reply_kb=menu_for(uid)):
             return
@@ -296,7 +330,8 @@ def run_action(uid, mid, action):
 def ensure_products(uid, category):
     if db.brands(category):
         return True
-    tg.send(uid, "⚠️ Produk belum tersedia. Mohon tunggu admin memperbarui daftar produk.")
+    tg.send(uid, "😔 Produk ini sedang tidak tersedia. Silakan pilih kategori lain atau coba lagi nanti.",
+            reply_kb=menu_for(uid))
     if is_admin(uid):
         tg.send(uid, "Admin: buka 🛠 Admin → 🔄 Sinkron Produk.")
     return False
@@ -316,9 +351,14 @@ def start_number(uid, category, brand=None, pid=None):
     elif category == "Pascabayar":
         p = db.product(pid)
         ask = f"🧾 {html.escape(p['name'])}\nKirim <b>nomor pelanggan / ID tagihan</b>:"
+    elif category in PHONE_CATS and brand:
+        ask = f"📲 Kirim <b>nomor HP tujuan</b> untuk {html.escape(brand)} (contoh: 081234567890):"
+    elif category in PHONE_CATS:
+        ask = "📲 Kirim <b>nomor HP tujuan</b> (contoh: 081234567890):"
     else:
-        ask = "Kirim <b>nomor HP tujuan</b> (contoh: 081234567890):"
-    tg.send(uid, f"{LABEL[category]}\n\n{ask}\n\nKetik /batal untuk membatalkan.")
+        ask = (f"✍️ Kirim <b>nomor tujuan / ID pelanggan</b> untuk {html.escape(brand or '')}.\n"
+               f"Untuk voucher tanpa tujuan, kirim nomor HP Anda.")
+    tg.send(uid, f"{label(category)}\n\n{ask}\n\nKetik /batal untuk membatalkan.")
 
 
 def start_brand(uid, category):
@@ -326,7 +366,7 @@ def start_brand(uid, category):
         return
     brands = db.brands(category)
     reset(uid, step="pick_brand", cat=category, brands=brands, bpage=0)
-    tg.send(uid, f"{LABEL[category]}\n\nPilih:", kb=brand_keyboard(brands, 0))
+    tg.send(uid, f"{label(category)}\n\n👇 Pilih layanan:", kb=brand_keyboard(brands, 0))
 
 
 def brand_keyboard(brands, page):
@@ -353,8 +393,8 @@ def brand_keyboard(brands, page):
 def brand_picked(uid, mid, brand):
     s = sess(uid)
     cat = s["cat"]
-    if cat in ("E-Money", "Games"):
-        tg.edit(uid, mid, f"{LABEL[cat]}: <b>{html.escape(brand)}</b>")
+    if cat not in ("Pulsa", "Data", "PLN", "Pascabayar"):
+        tg.edit(uid, mid, f"{label(cat)}: <b>{html.escape(brand)}</b>")
         return start_number(uid, cat, brand=brand)
     if cat == "Pascabayar":
         items = db.products(cat, [brand])
@@ -383,20 +423,24 @@ def got_number(uid, text):
         if not 4 <= len(number) <= 30:
             return tg.send(uid, "❌ Nomor pelanggan tidak valid. Coba lagi atau /batal.")
         return do_inquiry(uid, s["pid"], number)
-    else:
+    elif cat in PHONE_CATS:
         number = normalize_phone(text)
         if not (number.startswith("0") and 10 <= len(number) <= 14):
             return tg.send(uid, "❌ Nomor HP tidak valid. Contoh: 081234567890. Coba lagi atau /batal.")
+    else:
+        number = re.sub(r"[^0-9A-Za-z]", "", text)
+        if not 4 <= len(number) <= 30:
+            return tg.send(uid, "❌ Nomor tujuan / ID tidak valid. Coba lagi atau /batal.")
 
     s["target"] = number
     s["step"] = "pick_product"
-    header = f"{LABEL[cat]}\n📱 Tujuan: <code>{number}</code>\n"
+    header = f"{label(cat)}\n📱 Tujuan: <code>{number}</code>\n"
     if cat == "PLN":
         info = digiflazz.inquiry_pln(number)
         if info:
             header += f"👤 Nama: <b>{html.escape(info['name'])}</b> ({html.escape(str(info.get('segment_power', '')))})\n"
         return show_products(uid, db.brands("PLN"), header)
-    if cat in ("E-Money", "Games"):
+    if s.get("brand"):
         return show_products(uid, [s["brand"]], header)
     brands = detect_brands(number, cat)
     if brands:
@@ -425,10 +469,10 @@ def render_page(uid, message_id=None):
     for pid in ids[page * PAGE:(page + 1) * PAGE]:
         p = db.product(pid)
         if p["kind"] == "pasca":
-            label = f"{p['name'][:42]}"
+            text_btn = f"🧾 {p['name'][:40]}"
         else:
-            label = f"{p['name'][:36]} • {rp(service.price_for(p, level))}"
-        rows.append([tg.btn(label, f"p:{pid}")])
+            text_btn = f"🔹 {p['name'][:34]} • {rp(service.price_for(p, level))}"
+        rows.append([tg.btn(text_btn, f"p:{pid}")])
     nav = []
     if page > 0:
         nav.append(tg.btn("⬅️", f"pg:{page - 1}"))
@@ -439,7 +483,7 @@ def render_page(uid, message_id=None):
     if nav:
         rows.append(nav)
     rows.append([tg.btn("❌ Batal", "x")])
-    text = s["header"] + f"💰 Saldo: {rp(db.balance(uid))} • 🏅 {LEVEL_LABEL[level]}\n\nPilih produk:"
+    text = s["header"] + f"💰 Saldo: {rp(db.balance(uid))} • 🏅 {LEVEL_LABEL[level]}\n\n👇 Pilih produk:"
     if message_id:
         tg.edit(uid, message_id, text, rows)
     else:
@@ -468,6 +512,7 @@ def confirm_product(uid, mid, pid):
     else:
         text += f"\n⚡ Lain kali lebih cepat: <code>{html.escape(p['code'])}.{s['target']}.PIN</code>"
         kb = [[tg.btn("✅ Beli Sekarang", f"ok:{pid}")], back]
+        text = text.replace("🧾 <b>Konfirmasi Pembelian</b>", "🛒 <b>Konfirmasi Pembelian</b>", 1)
     tg.edit(uid, mid, text, kb)
 
 
@@ -693,7 +738,8 @@ def do_manual_deposit(uid, amount):
     qris = db.get_setting("manual_qris")
     caption = (f"🧾 <b>Deposit {rp(amount)}</b>\n\n"
                f"Transfer <b>TEPAT</b>: <b>{rp(total)}</b>\n"
-               f"<i>(3 angka terakhir adalah kode unik dan ikut masuk ke saldo Anda)</i>\n\n"
+               + (f"<i>(3 angka terakhir adalah kode unik dan ikut masuk ke saldo Anda)</i>\n\n"
+                  if total != amount else "\n")
                + (f"📷 Scan QRIS di atas dengan m-banking / e-wallet apa saja.\n" if qris else "")
                + (f"{html.escape(info)}\n" if info else "")
                + f"\n🆔 <code>{ref}</code>\n\nSetelah transfer, tekan <b>✅ Saya sudah transfer</b> "
@@ -861,7 +907,7 @@ def on_callback(q):
         if s.get("step") != "pick_brand":
             return tg.edit(uid, mid, "Sesi habis. Silakan mulai lagi dari menu.")
         s["bpage"] = int(data[3:])
-        return tg.edit(uid, mid, f"{LABEL.get(s['cat'], '')}\n\nPilih:", brand_keyboard(s["brands"], s["bpage"]))
+        return tg.edit(uid, mid, f"{label(s['cat'])}\n\n👇 Pilih layanan:", brand_keyboard(s["brands"], s["bpage"]))
     if data.startswith("b:"):
         brands, i = s.get("brands") or [], int(data[2:])
         if s.get("step") != "pick_brand" or i >= len(brands):
@@ -924,20 +970,77 @@ def admin_panel(uid):
                  "/nonaktif KODE • /aktif KODE\n"
                  "/harga2 KODE SKU_SUPPLIER2 MODAL — harga supplier cadangan\n"
                  "/ban ID • /unban ID • /broadcast PESAN\n"
+                 "/laba • /tariklaba JUMLAH — keuntungan terpisah\n"
                  "/laporan • /backup • /status • /ip\n"
                  "/pending • /gagal — acc manual (sukseskan, gagalkan, kirim ulang)\n"
-                 "/setqris • /setrekening • /hapusqris — deposit manual\n"
+                 "/setqris • /setrekening • /hapusqris • /kodeunik — deposit manual\n"
                  "/autoretry 1 3 — kirim ulang otomatis 1x jeda 3 menit\n"
                  "/notifgagal on|off",
-            kb=[[tg.btn("📊 Statistik", "adm:stats"), tg.btn("🏭 Supplier", "adm:sup")],
+            kb=[[tg.btn("💰 Keuntungan Saya", "adm:laba")],
+                [tg.btn("📊 Statistik", "adm:stats"), tg.btn("🏭 Supplier", "adm:sup")],
                 [tg.btn("⏳ Pending", "adm:pending"), tg.btn("❌ Gagal 24 jam", "adm:gagal")],
                 [tg.btn("🩺 Status Server", "adm:status"), tg.btn("💾 Backup", "adm:backup")],
                 [tg.btn("🔄 Sinkron Produk", "adm:sync")]]
             + ([[tg.url_btn("🌐 Web Admin", web_url("/login"))]] if web_url() else []))
 
 
+def profit_text():
+    import jobs
+    today = jobs.day_start()
+    d, w, m = db.stats(today), db.stats(today - 6 * 86400), db.stats(today - 29 * 86400)
+    p = db.profit_summary()
+    bals = service.supplier_balances()
+    dg = bals.get(digiflazz.NAME)
+    lines = ["💰 <b>Keuntungan Saya</b>\n",
+             f"📅 Hari ini: <b>{rp(d['laba'])}</b> ({d['trx']} trx)",
+             f"🗓 7 hari: <b>{rp(w['laba'])}</b> ({w['trx']} trx)",
+             f"📆 30 hari: <b>{rp(m['laba'])}</b> ({m['trx']} trx)",
+             f"🏆 Total sejak awal: <b>{rp(p['total'])}</b>\n",
+             f"📤 Sudah ditarik: {rp(p['taken'])}",
+             f"✅ <b>Laba belum ditarik: {rp(p['left'])}</b>\n",
+             "━━━━━━━━━━━━━━",
+             f"🏦 Uang titipan member: <b>{rp(p['saldo_member'])}</b>",
+             "   <i>(ini saldo milik member, jangan ditarik)</i>",
+             f"🏭 Saldo Digiflazz: <b>{rp(dg) if dg is not None else 'tidak terbaca'}</b>\n",
+             "💡 Yang aman Anda ambil = <b>Laba belum ditarik</b>.\n"
+             "Setelah mengambil uang, catat dengan <code>/tariklaba JUMLAH</code> supaya angkanya tetap rapi."]
+    return "\n".join(lines)
+
+
+def record_withdrawal(uid, amount, note):
+    left = db.profit_summary()["left"]
+    if amount <= 0:
+        return tg.send(uid, "❌ Jumlah tidak valid.")
+    if amount > left:
+        return tg.send(uid, f"⚠️ Jumlah {rp(amount)} melebihi laba belum ditarik ({rp(left)}).\n"
+                            f"Sisanya adalah uang titipan member. Tidak dicatat.")
+    db.add_withdrawal(amount, note[:80], uid)
+    return tg.send(uid, f"✅ Tarik laba {rp(amount)} dicatat.\nSisa laba belum ditarik: "
+                        f"<b>{rp(left - amount)}</b>")
+
+
+def show_withdrawals(uid):
+    rows = db.withdrawals(10)
+    if not rows:
+        return tg.send(uid, "📜 Belum ada catatan tarik laba.")
+    lines = ["📜 <b>Riwayat tarik laba</b>\n"]
+    lines += [f"• {time.strftime('%d/%m/%y %H:%M', time.localtime(r['created_at']))} — <b>{rp(r['amount'])}</b>"
+              + (f" ({html.escape(r['note'])})" if r["note"] else "") for r in rows]
+    tg.send(uid, "\n".join(lines))
+
+
 def admin_action(uid, action):
     import jobs
+    if action == "laba":
+        return tg.send(uid, profit_text(), kb=[[tg.btn("📤 Catat tarik laba", "adm:tarik"),
+                                               tg.btn("📜 Riwayat tarik", "adm:tarikriw")]])
+    if action == "tarik":
+        reset(uid, step="tarik_laba")
+        left = db.profit_summary()["left"]
+        return tg.send(uid, f"📤 Laba belum ditarik: <b>{rp(left)}</b>\n\nKetik jumlah yang Anda ambil "
+                            f"(contoh <code>100000</code>). Ketik /batal untuk batal.")
+    if action == "tarikriw":
+        return show_withdrawals(uid)
     if action == "stats":
         return tg.send(uid, jobs.report_text(jobs.day_start(), title="📊 Statistik Hari Ini"))
     if action == "sup":
@@ -1037,6 +1140,19 @@ def admin_command(uid, cmd, arg):
             reset(uid, step="set_qris")
             return tg.send(uid, "📷 Kirim <b>foto QRIS</b> milik Anda (screenshot QRIS dari aplikasi bank / "
                                 "e-wallet / QRIS toko). Foto ini akan ditampilkan ke member saat deposit.")
+        if cmd == "/laba":
+            return admin_action(uid, "laba")
+        if cmd == "/tariklaba":
+            if not parts:
+                return admin_action(uid, "tarik")
+            return record_withdrawal(uid, num(0), " ".join(parts[1:]))
+        if cmd == "/kodeunik":
+            if arg.lower() not in ("on", "off"):
+                now_on = db.get_setting("manual_unique") != "0"
+                return tg.send(uid, f"Kode unik deposit manual: <b>{'ON' if now_on else 'OFF'}</b>\n"
+                                    "Ubah: <code>/kodeunik on</code> atau <code>/kodeunik off</code>")
+            db.set_setting("manual_unique", "1" if arg.lower() == "on" else "0")
+            return tg.send(uid, f"✅ Kode unik deposit manual {'diaktifkan' if arg.lower() == 'on' else 'dimatikan'}.")
         if cmd == "/hapusqris":
             db.set_setting("manual_qris", "")
             return tg.send(uid, "✅ Gambar QRIS dihapus.")
