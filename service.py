@@ -48,10 +48,18 @@ def supplier_enabled(name):
     return name in suppliers() and name not in disabled_suppliers()
 
 
+TEST_ITEM = {"code": "xld10", "supplier_sku": "xld10", "name": "🧪 TES Digiflazz (mode uji)", "category": "Pulsa",
+             "brand": "XL", "base_price": 10000, "kind": "prepaid",
+             "descr": "Produk uji resmi Digiflazz. Nomor 087800001230 = Sukses, 087800001232 = Gagal, "
+                      "087800001233 = Pending lalu Sukses, 087800001234 = Pending lalu Gagal."}
+
+
 def sync_products():
     items = digiflazz.price_list()
     if not items:
         raise net.NetError("Daftar produk kosong")
+    if config.DIGIFLAZZ_TESTING:  # hilang sendiri saat sinkron berikutnya setelah TESTING=false
+        items = items + [dict(TEST_ITEM)]
     db.upsert_supplier_items(digiflazz.NAME, items)
     db.set_setting("last_sync", int(time.time()))
     return len(items)
@@ -327,9 +335,12 @@ def manual_ready():
 def create_manual_deposit(tg_id, amount):
     """Deposit ke QRIS/rekening milik admin sendiri. Kode unik 3 digit supaya transfer mudah dicocokkan;
     kode unik ikut masuk ke saldo member."""
-    taken = db.open_manual_amounts()
-    choices = [n for n in range(1, 1000) if amount + n not in taken]
-    total = amount + random.choice(choices or [random.randint(1, 999)])
+    if db.get_setting("manual_unique") == "0":
+        total = amount
+    else:
+        taken = db.open_manual_amounts()
+        choices = [n for n in range(1, 1000) if amount + n not in taken]
+        total = amount + random.choice(choices or [random.randint(1, 999)])
     ref = new_ref("DEP")
     db.create_deposit(ref, tg_id, total)
     db.update_deposit_payment(ref, "MANUAL", total)
