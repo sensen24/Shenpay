@@ -107,6 +107,7 @@ ICONS = {
     "game": "M6 12h4M8 10v4M15 13h.01M18 11h.01M17.3 5H6.7a4 4 0 0 0-4 3.4L2 14a3 3 0 0 0 5.2 2.5L9 15h6l1.8 1.5A3 3 0 0 0 22 14l-.7-5.6A4 4 0 0 0 17.3 5z",
     "receipt": "M4 2v20l3-2 3 2 3-2 3 2 3-2 2 2V2l-2 2-3-2-3 2-3-2-3 2zM8 8h8M8 12h8M8 16h5",
     "check": "M20 6L9 17l-5-5",
+    "tablet": "M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM4 6h16M4 18h16",
     "bell": "M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0",
     "clock": "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2",
     "share": "M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13",
@@ -340,8 +341,8 @@ border:1px solid var(--line);color:var(--ink);font-weight:600;font-size:14px}.ta
 border-radius:999px;margin-bottom:16px}
 .feat{list-style:none;padding:0;margin:0 0 30px;display:grid;gap:12px}.feat li{display:flex;gap:12px;align-items:flex-start;
 color:#DCE4F2}.feat svg.i{color:#5DE0AE;margin-top:2px}
-.stores{display:flex;gap:12px;flex-wrap:wrap}.store{display:flex;align-items:center;gap:12px;border:1.5px solid #3A4B72;
-border-radius:14px;padding:10px 18px;color:#fff}.store svg.i{width:26px;height:26px}.store small{display:block;color:#AFC0DD;
+.stores{display:flex;gap:12px;flex-wrap:wrap}.store{display:flex;align-items:center;gap:12px;border:1.5px solid #4A5C86;
+border-radius:14px;padding:10px 20px 10px 16px;color:#fff;background:#0B1222;min-width:168px}.store svg.i{width:26px;height:26px}.store small{display:block;color:#AFC0DD;
 font-size:12px}.store b{font-size:16px}.notify{display:inline-block;margin-top:18px;color:#7FE3BD;font-weight:600}
 .phones{position:relative;height:600px}.phone{position:absolute;width:270px;height:560px;border-radius:44px;background:#0B1222;
 padding:11px;box-shadow:0 40px 80px -20px #000a,inset 0 0 0 2px #2A3654}.phone .scr{background:#F5F7FA;border-radius:34px;
@@ -372,6 +373,32 @@ padding:11px;font-weight:700;margin-bottom:8px}.abtn.pri{background:var(--jade);
 .faq summary{cursor:pointer;list-style:none;padding:16px 0;font-weight:700;font-size:17px;display:flex;justify-content:space-between;gap:16px}
 .faq summary::-webkit-details-marker{display:none}.faq summary:after{content:"+";color:var(--jade);font-size:22px;line-height:1}
 .faq details[open] summary:after{content:"−"}.faq details p{margin:0 0 18px;color:#3B4760;max-width:64ch}
+
+/* animasi: satu urutan saat halaman dibuka, lalu muncul saat di-scroll */
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes printin{from{clip-path:inset(0 0 100% 0);transform:rotate(1.2deg) translateY(-24px)}
+to{clip-path:inset(0 0 -24px 0);transform:rotate(1.2deg)}}
+@keyframes float1{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes float2{0%,100%{transform:rotate(4deg) translateY(0)}50%{transform:rotate(4deg) translateY(-8px)}}
+@keyframes draw{from{stroke-dashoffset:30}to{stroke-dashoffset:0}}
+@keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+@keyframes shine{from{background-position:-200% 0}to{background-position:200% 0}}
+.hero h1{animation:rise .8s cubic-bezier(.2,.7,.2,1) .05s both}.hero .lead{animation:rise .8s cubic-bezier(.2,.7,.2,1) .18s both}
+.hero .cta{animation:rise .8s cubic-bezier(.2,.7,.2,1) .3s both}.hero .facts{animation:rise .8s cubic-bezier(.2,.7,.2,1) .42s both}
+.receipt{animation:printin 1.2s cubic-bezier(.2,.7,.2,1) .35s both}
+.receipt .rl{animation:rise .5s ease-out both;animation-delay:calc(.9s + var(--i,0) * .09s)}
+.cta .btn:first-child{background-image:linear-gradient(110deg,transparent 30%,#ffffff40 50%,transparent 70%);
+background-size:200% 100%;animation:shine 3.5s ease-in-out 1.5s infinite}
+.js .rv{opacity:0;transform:translateY(28px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+.js .rv.in{opacity:1;transform:none}.js .cats .cat{transition-delay:calc(var(--i,0) * 70ms)}
+.cat{transition:transform .25s,box-shadow .25s}.cat:hover{transform:translateY(-3px);box-shadow:0 12px 24px -12px #14213D33;position:relative;z-index:1}
+.appband.in .phone.p1{animation:float1 6s ease-in-out 1s infinite}.appband.in .phone.p2{animation:float2 7s ease-in-out 1.6s infinite}
+.okc svg path{stroke-dasharray:30;stroke-dashoffset:30}.appband.in .okc{animation:pop .6s ease-out .9s both}
+.appband.in .okc svg path{animation:draw .7s ease-out 1.3s forwards}
+.js .appband .phone{opacity:0;transition:opacity .9s .2s,translate .9s .2s;translate:0 40px}
+.js .appband.in .phone{opacity:1;translate:0 0}.js .appband.in .phone.p2{transition-delay:.45s}
+@media (prefers-reduced-motion:reduce){.js .rv,.js .appband .phone{opacity:1;transform:none;translate:none}
+.okc svg path{stroke-dashoffset:0}}
 @media (max-width:860px){.appgrid{grid-template-columns:1fr}.appband{padding:56px 0}.appband h2{font-size:27px}
 .phones{width:540px;height:600px;transform:scale(.62);transform-origin:top left;margin-bottom:-228px}}
 @media (max-width:860px){.hero{grid-template-columns:1fr;gap:40px;padding:16px 0 48px}.lnav nav a.hide{display:none}
@@ -399,44 +426,61 @@ def landing(req):
     counts = {r["category"]: r["n"] for r in db.conn().execute(
         f"SELECT category, COUNT(*) n FROM catalog WHERE {db.VISIBLE} GROUP BY category")}
     month = db.stats(int(time.time()) - 30 * 86400)
+    done = month["trx"] + month["gagal"]
+    if done >= 20:  # tampilkan tingkat sukses asli hanya jika datanya cukup
+        rate = month["trx"] / done * 100
+        rate_txt = f"{rate:.1f}".replace(".", ",")
+        rate_fact = (f"<div><b class=count data-to='{rate:.1f}' data-dec=1>{rate_txt}%</b>"
+                     f"<span>tingkat sukses 30 hari</span></div>")
+    else:
+        rate_fact = "<div><b>24 jam</b><span>proses otomatis</span></div>"
     items = ticker_items()
-    lines = "".join(f"<div class=rl><span class=w>{i['w']}</span><span class=p>{e(i['p'])}</span><span class=s>Sukses</span>"
-                    f"<span class=t>{e(i['t'])}</span></div>" for i in items) or \
+    lines = "".join(f"<div class=rl style='--i:{n}'><span class=w>{i['w']}</span><span class=p>{e(i['p'])}</span><span class=s>Sukses</span>"
+                    f"<span class=t>{e(i['t'])}</span></div>" for n, i in enumerate(items)) or \
         "<div class=rl><span></span><span class=p>Menunggu transaksi pertama</span><span></span></div>"
-    cats = "".join(f"<div class=cat><b>{label}</b><span>{desc}</span>" +
+    cats = "".join(f"<div class=cat style='--i:{n}'><b>{label}</b><span>{desc}</span>" +
                    (f"<span class=n>{counts[key]} produk</span>" if counts.get(key) else "<span>Segera hadir</span>") +
-                   "</div>" for key, label, desc in CAT_INFO)
+                   "</div>" for n, (key, label, desc) in enumerate(CAT_INFO))
     join = bot_link()
     body = f"""<div class=lp>{landing_nav()}
 <section class=hero><div>
 <h1>Jualan pulsa, kuota, token listrik, dan tagihan dari satu bot Telegram.</h1>
-<p class=lead>Isi saldo pakai QRIS, transaksi diproses otomatis 24 jam, dan saldo kembali sendiri kalau transaksi gagal.
+<p class=lead>Isi saldo pakai QRIS, transaksi diproses otomatis 24 jam lewat beberapa supplier sekaligus, dan status dikirim dalam hitungan detik.
 Cocok untuk konter, warung, dan reseller dari rumah.</p>
 <div class=cta><a class=btn href="{e(join)}">{icon('send')}Daftar lewat Telegram</a><a class="btn sec" href=/harga>Lihat daftar harga</a></div>
-<div class=facts><div><b>{db.count_products()}</b><span>produk aktif</span></div>
-<div><b>{month['trx']:,}</b><span>transaksi sukses 30 hari</span></div><div><b>24 jam</b><span>proses otomatis</span></div></div>
+<div class=facts><div><b class=count data-to="{db.count_products()}">{db.count_products()}</b><span>produk aktif</span></div>
+<div><b class=count data-to="{month['trx']}">{month['trx']:,}</b><span>transaksi sukses 30 hari</span></div>{rate_fact}</div>
 </div>
 <div class=receipt aria-label="Transaksi sukses terbaru"><h3>{e(config.STORE_NAME)}</h3>
 <div class=sub><span class=live></span>Transaksi sukses terbaru</div><div id=rlist>{lines}</div>
 <div class=rfoot>Nomor tujuan disamarkan demi privasi</div></div></section></div>
-<section class=band><div class=lp><h2 class=sec-h>Semua produk digital dalam satu saldo</h2>
+<section class="band"><div class="lp rv"><h2 class=sec-h>Semua produk digital dalam satu saldo</h2>
 <p class=sec-p>Satu saldo untuk semua kebutuhan pelanggan Anda. Harga mengikuti level akun: makin sering transaksi, makin murah.</p>
 <div class=cats>{cats}</div></div></section>
-<div class=lp><section class=why>
+<div class=lp><section class="why rv">
 <div><b>Saldo masuk otomatis</b><p>Bayar QRIS dari m-banking atau e-wallet apa saja, saldo langsung bertambah tanpa konfirmasi manual.</p></div>
-<div><b>Gagal, saldo kembali</b><p>Transaksi yang gagal dikembalikan otomatis. Sistem juga mencoba supplier cadangan sebelum menyerah.</p></div>
+<div><b>Multi-supplier otomatis</b><p>Setiap transaksi dikirim ke supplier terbaik. Jika satu supplier sibuk, sistem langsung berpindah ke supplier lain tanpa Anda sadari.</p></div>
 <div><b>Untung dari downline</b><p>Bagikan link referral Anda dan dapatkan komisi {rp(db.komisi())} dari setiap transaksi sukses mereka.</p></div>
 </section>
-<section id=mulai><h2 class=sec-h>Mulai dalam tiga langkah</h2><p class=sec-p>Bisa langsung dipakai hari ini lewat Telegram, tanpa menunggu aplikasi.</p>
+<section id=mulai class=rv><h2 class=sec-h>Mulai dalam tiga langkah</h2><p class=sec-p>Bisa langsung dipakai hari ini lewat Telegram, tanpa menunggu aplikasi.</p>
 <div class=steps><div class=step><b>Buka bot dan tekan Start</b><p>Akun Anda langsung dibuat, tanpa formulir.</p></div>
 <div class=step><b>Isi saldo lewat QRIS</b><p>Mulai dari {rp(config.DEPOSIT_MIN)}. Saldo masuk dalam hitungan detik.</p></div>
 <div class=step><b>Kirim nomor, pilih produk</b><p>Status dan SN dikirim otomatis, lengkap dengan struk untuk pembeli.</p></div></div></section>
 </div>{app_section(join)}<div class=lp>{faq_section()}
-<section class=endcta><div><h2>Siap mulai jualan hari ini?</h2><p>Daftar gratis, tanpa biaya bulanan.</p></div>
+<section class="endcta rv"><div><h2>Siap mulai jualan hari ini?</h2><p>Daftar gratis, tanpa biaya bulanan.</p></div>
 <a class=btn href="{e(join)}">{icon('send')}Buka bot Telegram</a></section>
 <footer class=lfoot><span>© {time.strftime('%Y')} {e(config.STORE_NAME)}</span>
 <span>{('Bantuan: ' + e(config.ADMIN_CONTACT)) if config.ADMIN_CONTACT else ''}</span></footer></div>
-<script>(function(){{var seen=new Set({json.dumps([i['id'] for i in items])});
+<script>document.documentElement.classList.add('js');(function(){{
+var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var io=new IntersectionObserver(function(es){{es.forEach(function(x){{if(x.isIntersecting){{x.target.classList.add('in');io.unobserve(x.target);}}}});}},{{threshold:.18}});
+document.querySelectorAll('.rv,.rvp').forEach(function(el){{io.observe(el);}});
+document.querySelectorAll('.count').forEach(function(el){{var to=parseFloat(el.dataset.to)||0,dec=el.dataset.dec?1:0,
+suf=dec?'%':'';if(reduce||!to)return;var fin=el.textContent,t0=null,stop=false;function fmt(v){{return (dec?v.toFixed(1).replace('.',','):Math.round(v).toLocaleString('id-ID'))+suf;}}
+function f(t){{if(stop)return;if(!t0)t0=t;var p=Math.min((t-t0)/1400,1);el.textContent=fmt(to*(1-Math.pow(1-p,3)));
+if(p<1)requestAnimationFrame(f);else el.textContent=fin;}}
+setTimeout(function(){{requestAnimationFrame(f);}},500);setTimeout(function(){{stop=true;el.textContent=fin;}},2600);}});}})();
+(function(){{var seen=new Set({json.dumps([i['id'] for i in items])});
 function tick(){{fetch('/ticker.json').then(function(r){{return r.json()}}).then(function(d){{var box=document.getElementById('rlist');
 d.slice().reverse().forEach(function(i){{if(seen.has(i.id))return;seen.add(i.id);var el=document.createElement('div');
 el.className='rl new';el.innerHTML='<span class=w></span><span class=p></span><span class=s>Sukses</span><span class=t></span>';
@@ -465,7 +509,7 @@ def app_section(join):
             f"<div><span>Tujuan</span><b>0812•••••890</b></div><div><span>SN</span><b>0417 2983 5520</b></div>"
             f"<div><span>Waktu</span><b>27/11 09.38</b></div></div><span class='abtn pri'>Bagikan struk</span>"
             f"<span class='abtn sec'>Transaksi lagi</span></div></div></div>")
-    return f"""<section class=appband id=aplikasi><div class="lp appgrid"><div>
+    return f"""<section class="appband rvp" id=aplikasi><div class="lp appgrid"><div>
 <span class=soon>Segera hadir</span>
 <h2>Aplikasi {e(config.STORE_NAME)} untuk agen, di iOS dan Android.</h2>
 <p class=sub>Kami sedang menyiapkan aplikasi khusus agen agar transaksi makin cepat dari HP: satu ketukan untuk isi pulsa,
@@ -474,8 +518,8 @@ struk langsung dibagikan ke pembeli, dan notifikasi setiap saldo masuk.</p>
 <li>{icon('share')}<span>Struk dengan nama toko Anda, siap dibagikan lewat WhatsApp</span></li>
 <li>{icon('bell')}<span>Notifikasi deposit, transaksi sukses, dan komisi downline</span></li>
 <li>{icon('clock')}<span>Saldo dan riwayat sama dengan akun Telegram Anda, tidak perlu daftar ulang</span></li></ul>
-<div class=stores><span class=store>{icon('phone')}<span><small>Segera di</small><b>iOS</b></span></span>
-<span class=store>{icon('phone')}<span><small>Segera di</small><b>Android</b></span></span></div>
+<div class=stores><span class=store>{icon('phone')}<span><small>Segera hadir di</small><b>iOS</b></span></span>
+<span class=store>{icon('tablet')}<span><small>Segera hadir di</small><b>Android</b></span></span></div>
 <a class=notify href="{e(join)}">Mulai sekarang lewat Telegram, akun Anda langsung bisa dipakai di aplikasi nanti</a>
 </div><div><div class=phones>{home}{done}</div><p class=prev>Pratinjau tampilan aplikasi. Desain akhir dapat berubah.</p></div>
 </div></section>"""
@@ -487,8 +531,8 @@ def faq_section():
          "Tidak. Daftar gratis lewat bot Telegram dan tanpa biaya bulanan. Anda cukup mengisi saldo untuk mulai bertransaksi."),
         ("Berapa lama saldo QRIS masuk?",
          "Biasanya dalam hitungan detik setelah pembayaran berhasil, tanpa perlu kirim bukti transfer."),
-        ("Bagaimana kalau transaksi gagal?",
-         "Sistem mencoba supplier cadangan lebih dulu. Jika tetap gagal, saldo Anda dikembalikan otomatis dan tercatat di mutasi."),
+        ("Apakah saldo saya aman?",
+         "Aman. Saldo hanya terpotong untuk transaksi yang berhasil, dan setiap perubahan saldo tercatat rapi di menu mutasi."),
         ("Bagaimana cara jadi Reseller atau Agen?",
          "Hubungi admin lewat bot. Level Reseller dan Agen mendapat harga lebih murah di setiap transaksi."),
         ("Bisakah dihubungkan ke aplikasi atau server saya?",
@@ -498,7 +542,7 @@ def faq_section():
          "dan akun Anda nanti langsung terhubung ke aplikasi."),
     ]
     rows = "".join(f"<details><summary>{e(q_)}</summary><p>{e(a)}</p></details>" for q_, a in items)
-    return f"<section class=faq id=faq><h2 class=sec-h>Pertanyaan yang sering diajukan</h2>{rows}</section>"
+    return f"<section class='faq rv' id=faq><h2 class=sec-h>Pertanyaan yang sering diajukan</h2>{rows}</section>"
 
 
 def public_prices(req):

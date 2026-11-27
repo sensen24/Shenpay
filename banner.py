@@ -22,7 +22,7 @@ def welcome_png():
     d.text((166, 70), config.STORE_NAME[:28], font=_font(52, True), fill="#ffffff")
     d.text((70, 196), "Pulsa, kuota, token listrik, e-wallet,", font=_font(34, True), fill="#ffffff")
     d.text((70, 244), "game, dan tagihan dalam satu bot.", font=_font(34, True), fill="#ffffff")
-    d.text((70, 318), "Saldo QRIS otomatis   |   Gagal = saldo kembali   |   Proses 24 jam", font=_font(24), fill=MUTED)
+    d.text((70, 318), "Saldo QRIS otomatis   |   Multi-supplier   |   Proses 24 jam", font=_font(24), fill=MUTED)
     x = 70
     for label in ("Pulsa", "Data", "PLN", "E-Wallet", "Game", "Tagihan"):
         f = _font(24, True)
