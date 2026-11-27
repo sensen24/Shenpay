@@ -786,7 +786,9 @@ def admin_panel(uid):
     last = db.get_setting("last_sync")
     last_txt = time.strftime("%d/%m %H:%M", time.localtime(int(last))) if last else "belum pernah"
     mode = []
-    if config.DIGIFLAZZ_TESTING:
+    if not config.digiflazz_ready():
+        mode.append("⚠️ Digiflazz BELUM diatur — pembelian belum aktif")
+    elif config.DIGIFLAZZ_TESTING:
         mode.append("⚠️ Digiflazz MODE UJI (DIGIFLAZZ_TESTING=true)")
     if config.TRIPAY_SANDBOX:
         mode.append("⚠️ Tripay SANDBOX")

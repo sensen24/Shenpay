@@ -48,8 +48,15 @@ def main():
     tg.call("deleteWebhook")
     tg.call("setMyCommands", commands=[{"command": c, "description": d} for c, d in COMMANDS])
     log.info("Bot @%s berjalan. Supplier: %s", config.BOT_USERNAME, ", ".join(service.suppliers()))
-    service.notify_admins(f"🟢 <b>{config.STORE_NAME}</b> aktif.\nSupplier: {', '.join(service.suppliers())}" +
-                          ("\n⚠️ Digiflazz masih MODE UJI." if config.DIGIFLAZZ_TESTING else ""))
+    if not config.digiflazz_ready():
+        note = ("\n⚠️ Digiflazz belum diatur: web & bot sudah jalan, tetapi pembelian belum aktif. "
+                "Isi DIGIFLAZZ_USERNAME & DIGIFLAZZ_API_KEY di Railway setelah akun Digiflazz terverifikasi.")
+    elif config.DIGIFLAZZ_TESTING:
+        note = "\n⚠️ Digiflazz masih MODE UJI."
+    else:
+        note = ""
+    web_note = f"\n🌐 {config.PUBLIC_URL}" if config.PUBLIC_URL else ""
+    service.notify_admins(f"🟢 <b>{config.STORE_NAME}</b> aktif.{web_note}{note}")
 
     pool = ThreadPoolExecutor(max_workers=12)
     offset = 0

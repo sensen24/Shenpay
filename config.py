@@ -69,14 +69,13 @@ PUBLIC_URL = os.getenv("PUBLIC_URL", f"https://{_domain}" if _domain else "").rs
 
 
 def missing():
-    """Daftar variabel wajib yang belum diisi."""
-    need = {
-        "TELEGRAM_TOKEN": TELEGRAM_TOKEN,
-        "ADMIN_IDS": ADMIN_IDS,
-        "DIGIFLAZZ_USERNAME": DIGIFLAZZ_USERNAME,
-        "DIGIFLAZZ_API_KEY": DIGIFLAZZ_API_KEY,
-    }
+    """Variabel wajib agar server bisa menyala. Digiflazz boleh menyusul."""
+    need = {"TELEGRAM_TOKEN": TELEGRAM_TOKEN, "ADMIN_IDS": ADMIN_IDS}
     return [k for k, v in need.items() if not v]
+
+
+def digiflazz_ready():
+    return bool(DIGIFLAZZ_USERNAME and DIGIFLAZZ_API_KEY)
 
 
 def supplier2_ready():

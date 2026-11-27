@@ -20,6 +20,8 @@ def _sign(extra):
 
 
 def _post(path, payload):
+    if not config.digiflazz_ready():
+        raise net.NetError("Digiflazz belum diatur (isi DIGIFLAZZ_USERNAME & DIGIFLAZZ_API_KEY di Railway)")
     return net.request("POST", f"{config.DIGIFLAZZ_BASE}{path}", payload, timeout=60)
 
 
