@@ -101,6 +101,8 @@ def handle_update(u):
             on_callback(u["callback_query"])
         elif "message" in u and "text" in u["message"]:
             on_message(u["message"])
+        elif "message" in u and ("photo" in u["message"] or "document" in u["message"]):
+            on_photo(u["message"])
     except Exception:
         log.exception("Error memproses update")
 
@@ -135,7 +137,7 @@ def on_message(m):
         step = None
 
     if text.startswith("/"):
-        cmd, _, arg = text.partition(" ")
+        cmd, arg = (re.split(r"\s", text, maxsplit=1) + [""])[:2]
         return on_command(uid, name, cmd.split("@")[0].lower(), arg.strip())
 
     routes = {
@@ -662,7 +664,7 @@ def send_receipt(uid, ref, price=None):
 def show_help(uid):
     contact = f"\n\n📞 Bantuan admin: {html.escape(config.ADMIN_CONTACT)}" if config.ADMIN_CONTACT else ""
     tg.send(uid, "ℹ️ <b>Cara pakai</b>\n\n"
-                 "1. Isi saldo lewat <b>➕ Deposit</b> (QRIS, saldo masuk otomatis).\n"
+                 "1. Isi saldo lewat <b>➕ Deposit</b>.\n"
                  "2. Pilih produk, kirim nomor tujuan, pilih nominal, tekan <b>Beli</b>.\n"
                  "3. Status & SN dikirim otomatis. Gagal = saldo kembali otomatis.\n"
                  "4. Tekan 🧾 Struk untuk struk gambar yang bisa dikirim ke pembeli.\n\n"
@@ -673,21 +675,88 @@ def show_help(uid):
 
 # ---------------- deposit ----------------
 def start_deposit(uid):
-    if not config.tripay_ready():
+    if not config.tripay_ready() and not service.manual_ready():
         contact = f" {html.escape(config.ADMIN_CONTACT)}" if config.ADMIN_CONTACT else ""
-        return tg.send(uid, f"➕ Deposit otomatis belum aktif. Silakan hubungi admin{contact} "
+        return tg.send(uid, f"➕ Deposit belum aktif. Silakan hubungi admin{contact} "
                             f"dan sebutkan ID Anda: <code>{uid}</code>")
     reset(uid, step="deposit_amount")
     rows = [[tg.btn(rp(a), f"dep:{a}") for a in DEPOSIT_PRESETS[i:i + 3]] for i in range(0, len(DEPOSIT_PRESETS), 3)]
     rows.append([tg.btn("❌ Batal", "x")])
-    tg.send(uid, f"➕ <b>Deposit Saldo (QRIS)</b>\n\nPilih nominal atau ketik nominal lain "
+    title = "Deposit Saldo (QRIS)" if config.tripay_ready() else "Deposit Saldo"
+    tg.send(uid, f"➕ <b>{title}</b>\n\nPilih nominal atau ketik nominal lain "
                  f"({rp(config.DEPOSIT_MIN)} – {rp(config.DEPOSIT_MAX)}):", kb=rows)
+
+
+def do_manual_deposit(uid, amount):
+    ref, total = service.create_manual_deposit(uid, amount)
+    info = db.get_setting("manual_info") or ""
+    qris = db.get_setting("manual_qris")
+    caption = (f"🧾 <b>Deposit {rp(amount)}</b>\n\n"
+               f"Transfer <b>TEPAT</b>: <b>{rp(total)}</b>\n"
+               f"<i>(3 angka terakhir adalah kode unik dan ikut masuk ke saldo Anda)</i>\n\n"
+               + (f"📷 Scan QRIS di atas dengan m-banking / e-wallet apa saja.\n" if qris else "")
+               + (f"{html.escape(info)}\n" if info else "")
+               + f"\n🆔 <code>{ref}</code>\n\nSetelah transfer, tekan <b>✅ Saya sudah transfer</b> "
+                 f"lalu kirim foto bukti transfer.")
+    kb = [[tg.btn("✅ Saya sudah transfer", f"mdp:{ref}")], [tg.btn("❌ Batalkan", f"mdx:{ref}")]]
+    if qris and tg.photo(uid, qris, caption, kb):
+        return
+    tg.send(uid, caption, kb=kb)
+
+
+def notify_manual_deposit(ref, proof_file=None):
+    d = db.get_deposit(ref)
+    u = db.get_user(d["tg_id"])
+    text = (f"💳 <b>Konfirmasi deposit manual</b>\n\n"
+            f"👤 {html.escape(u['name'] or '-')} (<code>{d['tg_id']}</code>)\n"
+            f"💵 Nominal transfer: <b>{rp(d['pay_amount'])}</b>\n🆔 <code>{ref}</code>\n\n"
+            f"Cek mutasi rekening / QRIS Anda. Jika uang sudah masuk, tekan Terima."
+            + ("" if proof_file else "\n⚠️ Member tidak mengirim foto bukti."))
+    kb = [[tg.btn("✅ Terima", f"dpa:{ref}"), tg.btn("❌ Tolak", f"dpr:{ref}")]]
+    for a in config.ADMIN_IDS:
+        if not (proof_file and tg.photo(a, proof_file, text, kb)):
+            tg.send(a, text, kb=kb)
+
+
+def on_photo(m):
+    if m["chat"].get("type") != "private":
+        return
+    uid = m["from"]["id"]
+    user = db.get_user(uid)
+    if not user or user["banned"]:
+        return
+    if m.get("photo"):
+        file_id = m["photo"][-1]["file_id"]
+    elif (m.get("document") or {}).get("mime_type", "").startswith("image/"):
+        file_id = m["document"]["file_id"]
+    else:
+        return tg.send(uid, "Kirim bukti dalam bentuk foto ya.")
+    s = sess(uid)
+    caption = (m.get("caption") or "").strip().lower()
+    if is_admin(uid) and (caption.startswith("/setqris") or s.get("step") == "set_qris"):
+        reset(uid)
+        if not m.get("photo"):
+            return tg.send(uid, "❌ Kirim QRIS sebagai <b>foto</b> (bukan file).")
+        db.set_setting("manual_qris", file_id)
+        return tg.send(uid, "✅ Gambar QRIS disimpan. Member sekarang bisa deposit lewat ➕ Deposit.\n"
+                            "Tambahkan juga info rekening (opsional): /setrekening")
+    if s.get("step") == "deposit_proof":
+        ref = s.get("ref")
+        reset(uid)
+        notify_manual_deposit(ref, file_id if m.get("photo") else None)
+        return tg.send(uid, "✅ Bukti transfer terkirim ke admin. Saldo akan masuk setelah dicek. "
+                            "Anda akan mendapat notifikasi.", reply_kb=menu_for(uid))
+    tg.send(uid, "Silakan pilih menu di bawah 👇", reply_kb=menu_for(uid))
 
 
 def do_deposit(uid, name, amount):
     if not config.DEPOSIT_MIN <= amount <= config.DEPOSIT_MAX:
         return tg.send(uid, f"❌ Nominal harus {rp(config.DEPOSIT_MIN)} – {rp(config.DEPOSIT_MAX)}. Ketik lagi atau /batal.")
     reset(uid)
+    if not config.tripay_ready():
+        if service.manual_ready():
+            return do_manual_deposit(uid, amount)
+        return start_deposit(uid)
     try:
         ref, pay = service.create_deposit(uid, name, amount)
     except net.NetError as e:
@@ -742,8 +811,50 @@ def on_callback(q):
         except net.NetError:
             return tg.answer(q["id"], "Gagal cek status, coba lagi", True)
         text = {"PAID": "✅ Sudah dibayar, saldo sudah masuk", "UNPAID": "⏳ Belum dibayar",
+                "REVIEW": "⏳ Sedang dicek admin",
                 "EXPIRED": "⌛ Kedaluwarsa", "FAILED": "❌ Gagal"}.get(status, status)
         return tg.answer(q["id"], text, True)
+    if data.startswith(("mdp:", "mdn:", "mdx:")):
+        ref = data[4:]
+        d = db.get_deposit(ref)
+        if not d or d["tg_id"] != uid:
+            return tg.send(uid, "Deposit tidak ditemukan.")
+        if data.startswith("mdx:"):
+            if db.close_deposit(ref, "FAILED"):
+                tg.edit_markup(uid, mid)
+                return tg.send(uid, "❌ Deposit dibatalkan.", reply_kb=menu_for(uid))
+            return tg.send(uid, "Deposit ini sudah diproses dan tidak bisa dibatalkan.")
+        if data.startswith("mdn:"):
+            if s.get("step") == "deposit_proof" and s.get("ref") == ref:
+                reset(uid)
+                notify_manual_deposit(ref)
+                return tg.send(uid, "✅ Konfirmasi terkirim ke admin. Saldo masuk setelah dicek.",
+                               reply_kb=menu_for(uid))
+            return
+        if d["status"] == "PAID":
+            return tg.send(uid, "✅ Deposit ini sudah diterima, saldo sudah masuk.")
+        if d["status"] not in ("UNPAID", "REVIEW", "EXPIRED") or not (
+                d["status"] == "REVIEW" or db.review_deposit(ref)):
+            return tg.send(uid, "Deposit ini sudah ditutup. Silakan buat deposit baru.")
+        tg.edit_markup(uid, mid)
+        reset(uid, step="deposit_proof", ref=ref)
+        return tg.send(uid, f"📸 Kirim <b>foto bukti transfer</b> {rp(d['pay_amount'])} sekarang.",
+                       kb=[[tg.btn("Kirim tanpa foto", f"mdn:{ref}")]])
+    if data.startswith(("dpa:", "dpr:")) and is_admin(uid):
+        ref = data[4:]
+        d = db.get_deposit(ref)
+        if not d:
+            return tg.send(uid, "Deposit tidak ditemukan.")
+        tg.edit_markup(uid, mid)
+        if data.startswith("dpa:"):
+            if service.deposit_paid(ref, by_admin=uid):
+                service.notify_admins(f"✅ Deposit {rp(d['amount'])} <code>{ref}</code> diterima oleh "
+                                      f"<code>{uid}</code>. Saldo member sudah ditambah.")
+                return
+            return tg.send(uid, f"ℹ️ Deposit <code>{ref}</code> sudah diproses sebelumnya ({d['status']}).")
+        if service.deposit_closed(ref, "FAILED", reason="transfer tidak ditemukan"):
+            return service.notify_admins(f"❌ Deposit <code>{ref}</code> ditolak oleh <code>{uid}</code>.")
+        return tg.send(uid, f"ℹ️ Deposit <code>{ref}</code> sudah diproses sebelumnya ({d['status']}).")
     if data.startswith("st:"):
         return send_receipt(uid, data[3:])
     if data.startswith("bp:"):
@@ -793,7 +904,10 @@ def admin_panel(uid):
     if config.TRIPAY_SANDBOX:
         mode.append("⚠️ Tripay SANDBOX")
     if not config.tripay_ready():
-        mode.append("⚠️ Deposit QRIS belum aktif")
+        if service.manual_ready():
+            mode.append("💳 Deposit manual aktif (QRIS/rekening sendiri, acc lewat tombol)")
+        else:
+            mode.append("⚠️ Deposit belum aktif — kirim foto QRIS dengan caption /setqris")
     markups = " • ".join(f"{LEVEL_LABEL[l]} {rp(db.level_markup(l))}" for l in db.LEVELS)
     tg.send(uid, "🛠 <b>Panel Admin</b>\n\n"
                  f"📦 Produk aktif: {db.count_products()} (sinkron: {last_txt})\n"
@@ -812,6 +926,7 @@ def admin_panel(uid):
                  "/ban ID • /unban ID • /broadcast PESAN\n"
                  "/laporan • /backup • /status • /ip\n"
                  "/pending • /gagal — acc manual (sukseskan, gagalkan, kirim ulang)\n"
+                 "/setqris • /setrekening • /hapusqris — deposit manual\n"
                  "/autoretry 1 3 — kirim ulang otomatis 1x jeda 3 menit\n"
                  "/notifgagal on|off",
             kb=[[tg.btn("📊 Statistik", "adm:stats"), tg.btn("🏭 Supplier", "adm:sup")],
@@ -918,6 +1033,20 @@ def admin_command(uid, cmd, arg):
     try:
         if cmd == "/admin":
             return admin_panel(uid)
+        if cmd == "/setqris":
+            reset(uid, step="set_qris")
+            return tg.send(uid, "📷 Kirim <b>foto QRIS</b> milik Anda (screenshot QRIS dari aplikasi bank / "
+                                "e-wallet / QRIS toko). Foto ini akan ditampilkan ke member saat deposit.")
+        if cmd == "/hapusqris":
+            db.set_setting("manual_qris", "")
+            return tg.send(uid, "✅ Gambar QRIS dihapus.")
+        if cmd == "/setrekening":
+            if not arg:
+                return tg.send(uid, "Format: <code>/setrekening teks info pembayaran</code>\ncontoh:\n"
+                                    "<code>/setrekening BCA 1234567890 a.n. Agung Gede\nDANA 08123456789</code>\n\n"
+                                    "Hapus: <code>/setrekening hapus</code>")
+            db.set_setting("manual_info", "" if arg.lower() == "hapus" else arg[:500])
+            return tg.send(uid, "✅ Info rekening " + ("dihapus." if arg.lower() == "hapus" else "disimpan."))
         if cmd == "/markup":
             db.set_setting("markup_member", num(0))
             db.set_setting("markup_percent", float(parts[1].replace(",", ".")) if len(parts) > 1 else 0)

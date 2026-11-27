@@ -590,20 +590,34 @@ def get_deposit(merchant_ref):
     return conn().execute("SELECT * FROM deposits WHERE merchant_ref=?", (merchant_ref,)).fetchone()
 
 
-def pay_deposit(merchant_ref):
+def pay_deposit(merchant_ref, note="Deposit QRIS"):
+    """UNPAID/REVIEW/EXPIRED -> PAID dan saldo bertambah, sekali saja (aman ditekan dua kali)."""
     with Tx() as c:
-        cur = c.execute("UPDATE deposits SET status='PAID', updated_at=? WHERE merchant_ref=? AND status='UNPAID'",
-                        (now(), merchant_ref))
+        cur = c.execute("UPDATE deposits SET status='PAID', updated_at=? WHERE merchant_ref=? "
+                        "AND status IN ('UNPAID','REVIEW','EXPIRED')", (now(), merchant_ref))
         if cur.rowcount != 1:
             return None
         d = c.execute("SELECT * FROM deposits WHERE merchant_ref=?", (merchant_ref,)).fetchone()
-        _change(c, d["tg_id"], d["amount"], "deposit", merchant_ref, "Deposit QRIS")
+        _change(c, d["tg_id"], d["amount"], "deposit", merchant_ref, note)
         return d
 
 
-def close_deposit(merchant_ref, status):
-    return conn().execute("UPDATE deposits SET status=?, updated_at=? WHERE merchant_ref=? AND status='UNPAID'",
+def close_deposit(merchant_ref, status, also_review=False):
+    states = "('UNPAID','REVIEW')" if also_review else "('UNPAID')"
+    return conn().execute(f"UPDATE deposits SET status=?, updated_at=? WHERE merchant_ref=? AND status IN {states}",
                           (status, now(), merchant_ref)).rowcount == 1
+
+
+def review_deposit(merchant_ref):
+    """Member menekan 'Saya sudah transfer' (deposit manual)."""
+    return conn().execute("UPDATE deposits SET status='REVIEW', updated_at=? WHERE merchant_ref=? "
+                          "AND status IN ('UNPAID','EXPIRED')", (now(), merchant_ref)).rowcount == 1
+
+
+def open_manual_amounts():
+    rows = conn().execute("SELECT pay_amount FROM deposits WHERE reference='MANUAL' "
+                          "AND status IN ('UNPAID','REVIEW')").fetchall()
+    return {r["pay_amount"] for r in rows}
 
 
 def stale_deposits(older_than_sec):

@@ -320,27 +320,50 @@ def create_deposit(tg_id, name, amount):
     return ref, pay
 
 
-def deposit_paid(merchant_ref):
-    d = db.pay_deposit(merchant_ref)
+def manual_ready():
+    return bool(db.get_setting("manual_qris") or db.get_setting("manual_info"))
+
+
+def create_manual_deposit(tg_id, amount):
+    """Deposit ke QRIS/rekening milik admin sendiri. Kode unik 3 digit supaya transfer mudah dicocokkan;
+    kode unik ikut masuk ke saldo member."""
+    taken = db.open_manual_amounts()
+    choices = [n for n in range(1, 1000) if amount + n not in taken]
+    total = amount + random.choice(choices or [random.randint(1, 999)])
+    ref = new_ref("DEP")
+    db.create_deposit(ref, tg_id, total)
+    db.update_deposit_payment(ref, "MANUAL", total)
+    return ref, total
+
+
+def deposit_paid(merchant_ref, by_admin=None):
+    d = db.pay_deposit(merchant_ref, "Deposit manual" if by_admin else "Deposit QRIS")
     if d:
         tg.send(d["tg_id"], f"✅ <b>Deposit berhasil!</b>\n\n💰 {rp(d['amount'])} masuk ke saldo.\n"
                             f"Saldo sekarang: <b>{rp(db.balance(d['tg_id']))}</b>")
-        notify_admins(f"💰 Deposit masuk {rp(d['amount'])} dari <code>{d['tg_id']}</code>")
+        if not by_admin:
+            notify_admins(f"💰 Deposit masuk {rp(d['amount'])} dari <code>{d['tg_id']}</code>")
     return d
 
 
-def deposit_closed(merchant_ref, status):
-    if db.close_deposit(merchant_ref, status):
+def deposit_closed(merchant_ref, status, reason=None):
+    if db.close_deposit(merchant_ref, status, also_review=reason is not None):
         d = db.get_deposit(merchant_ref)
-        tg.send(d["tg_id"], f"⌛ Deposit <code>{merchant_ref}</code> {'kedaluwarsa' if status == 'EXPIRED' else 'gagal'}. "
-                            f"Silakan buat deposit baru jika masih ingin mengisi saldo.")
+        if reason:
+            tg.send(d["tg_id"], f"❌ Deposit <code>{merchant_ref}</code> ditolak admin: {html.escape(reason)}\n"
+                                f"Hubungi admin jika Anda merasa sudah transfer.")
+        else:
+            tg.send(d["tg_id"], f"⌛ Deposit <code>{merchant_ref}</code> {'kedaluwarsa' if status == 'EXPIRED' else 'gagal'}. "
+                                f"Silakan buat deposit baru jika masih ingin mengisi saldo.")
+        return True
+    return False
 
 
 def check_deposit(merchant_ref):
     d = db.get_deposit(merchant_ref)
     if not d:
         return None
-    if d["status"] != "UNPAID" or not d["reference"]:
+    if d["status"] != "UNPAID" or not d["reference"] or d["reference"] == "MANUAL":
         return d["status"]
     status = tripay.detail(d["reference"])
     if status == "PAID":
@@ -352,6 +375,10 @@ def check_deposit(merchant_ref):
 
 def expire_old_deposits():
     for d in db.stale_deposits((config.DEPOSIT_EXPIRE_MINUTES + 10) * 60):
+        if d["reference"] == "MANUAL":
+            if d["created_at"] < db.now() - 24 * 3600:  # belum klaim transfer dalam 24 jam
+                deposit_closed(d["merchant_ref"], "EXPIRED")
+            continue
         try:
             check_deposit(d["merchant_ref"])
             if db.get_deposit(d["merchant_ref"])["status"] == "UNPAID":

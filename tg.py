@@ -48,6 +48,11 @@ def edit(chat_id, message_id, text, kb=None):
                 disable_web_page_preview=True, reply_markup=_markup(kb) if kb is not None else None)
 
 
+def edit_markup(chat_id, message_id, kb=None):
+    return call("editMessageReplyMarkup", chat_id=chat_id, message_id=message_id,
+                reply_markup={"inline_keyboard": kb or []})
+
+
 def delete(chat_id, message_id):
     return call("deleteMessage", chat_id=chat_id, message_id=message_id)
 

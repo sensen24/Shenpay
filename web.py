@@ -529,7 +529,8 @@ def landing(req):
     if month["trx"]:
         f2 = f"<div><b class=count data-to='{month['trx']}'>{month['trx']:,}</b><span>transaksi sukses 30 hari</span></div>"
     else:
-        f2 = "<div><b>QRIS</b><span>saldo masuk otomatis</span></div>"
+        f2 = ("<div><b>QRIS</b><span>saldo masuk otomatis</span></div>" if config.tripay_ready()
+              else "<div><b>QRIS</b><span>isi saldo dari aplikasi apa saja</span></div>")
     facts = f1 + f2 + rate_fact
     items = ticker_items()
     lines = "".join(f"<div class=rl style='--i:{n}'><span class=w>{i['w']}</span><span class=p>{e(i['p'])}</span><span class=s>Sukses</span>"
@@ -540,6 +541,12 @@ def landing(req):
                    (f"<span class=n>{counts[key]} produk</span>" if counts.get(key) else "<span>Segera hadir</span>") +
                    "</div>" for n, (key, label, desc) in enumerate(CAT_INFO))
     join = bot_link()
+    if config.tripay_ready():
+        dep_why = ("<div><b>Saldo masuk otomatis</b><p>Bayar QRIS dari m-banking atau e-wallet apa saja, "
+                   "saldo langsung bertambah tanpa konfirmasi manual.</p></div>")
+    else:
+        dep_why = ("<div><b>Isi saldo pakai QRIS</b><p>Bayar dari m-banking atau e-wallet apa saja, kirim bukti "
+                   "transfer di bot, dan saldo ditambahkan setelah dicek admin.</p></div>")
     body = f"""{landing_nav()}<div class=lp>
 <section class=hero><div>
 <h1>Jualan pulsa, kuota, token listrik, dan tagihan dari satu bot Telegram.</h1>
@@ -557,7 +564,7 @@ Cocok untuk konter, warung, dan reseller dari rumah.</p>
 <p class=sec-p>Satu saldo untuk semua kebutuhan pelanggan Anda. Harga mengikuti level akun: makin sering transaksi, makin murah.</p>
 <div class=cats>{cats}</div></div></section>
 <div class=lp><section class="why rv">
-<div><b>Saldo masuk otomatis</b><p>Bayar QRIS dari m-banking atau e-wallet apa saja, saldo langsung bertambah tanpa konfirmasi manual.</p></div>
+{dep_why}
 <div><b>Multi-supplier otomatis</b><p>Setiap transaksi dikirim ke supplier terbaik. Jika satu supplier sibuk, sistem langsung berpindah ke supplier lain tanpa Anda sadari.</p></div>
 <div><b>Untung dari downline</b><p>Bagikan link referral Anda dan dapatkan komisi {rp(db.komisi())} dari setiap transaksi sukses mereka.</p></div>
 </section>
