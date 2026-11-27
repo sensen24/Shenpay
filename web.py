@@ -1066,13 +1066,18 @@ def admin_products(req):
                f"<div class=kpi><small>Untung per transaksi</small><div class=v>{rp(db.level_markup('member'))}</div>"
                f"<div class=s>Member, ubah di Pengaturan</div></div><div class=kpi><small>Level harga</small>"
                f"<div class=v>3</div><div class=s>Member, Reseller, Agen</div></div></div>")
-    empty = ("<tr><td colspan=6 class=empty>Belum ada produk. Daftar produk (pulsa, data, token PLN, e-wallet, game, "
+    empty = ("<tr><td colspan=9 class=empty>Belum ada produk. Daftar produk (pulsa, data, token PLN, e-wallet, game, "
              "tagihan) akan terisi otomatis dari Digiflazz setelah API terhubung.</td></tr>")
     rows = ""
     for p in db.search_products(q, limit=300, include_hidden=True):
         opts = {o["supplier"]: o for o in db.supplier_options(p["code"])}
         sup = ", ".join(f"{n} {rp(o['base_price'])}" for n, o in opts.items()) or "<span class=bad>tidak ada</span>"
-        prices_ = " / ".join(rp(service.price_for(p, l)) for l in db.LEVELS) if p["kind"] == "prepaid" else "tagihan"
+        if p["kind"] == "prepaid":
+            prices_ = "".join(f"<td class=num>{rp(service.price_for(p, l))}<br><span class=muted style='color:#0E9F6E'>"
+                              f"+{rp(service.price_for(p, l) - p['base_price'])}</span></td>" for l in db.LEVELS)
+        else:
+            prices_ = "".join(f"<td class=num>tagihan<br><span class=muted style='color:#0E9F6E'>"
+                              f"+{rp(db.pasca_markup(l))}</span></td>" for l in db.LEVELS)
         s2form = ""
         if s2 and p["kind"] == "prepaid":
             o = opts.get(s2)
@@ -1081,14 +1086,17 @@ def admin_products(req):
                       f"value='{e(o['supplier_sku']) if o else ''}'><input name=price size=7 placeholder=Modal "
                       f"value='{o['base_price'] if o else ''}'><button class=sec>Simpan</button></form>")
         rows += (f"<tr><td><code>{e(p['code'])}</code></td><td>{e(p['name'][:38])}<br><span class=muted>{e(p['brand'])}"
-                 f"</span></td><td>{prices_}</td><td>{sup}</td>" + (f"<td>{s2form}</td>" if s2 else "") +
+                 f"</span></td><td class=num><b>{rp(p['base_price'])}</b></td>{prices_}<td>{sup}</td>"
+                 + (f"<td>{s2form}</td>" if s2 else "") +
                  f"<td><form method=post class=inline>{csrf(req)}<input type=hidden name=code value='{e(p['code'])}'>"
                  f"<input type=hidden name=action value={'on' if p['admin_off'] else 'off'}>"
                  f"<button class={'sec' if p['admin_off'] else 'red'}>{'Tampilkan' if p['admin_off'] else 'Sembunyikan'}"
                  f"</button></form></td></tr>")
     body = (f"{msg_box(msg)}{sup_box}<div class=box><h2>Pengaturan produk</h2>"
             f"<form><input name=q value='{e(q)}' placeholder='Cari kode / nama / brand'> <button>Cari</button></form><br>"
-            f"<table><tr><th>Kode</th><th>Produk</th><th>Harga Member / Reseller / Agen</th><th>Supplier (modal)</th>"
+            f"<p class=muted>Modal = harga asli supplier. Angka hijau = untung Anda per transaksi untuk tiap level.</p>"
+            f"<table><tr><th>Kode</th><th>Produk</th><th class=num>Modal</th><th class=num>Member</th>"
+            f"<th class=num>Reseller</th><th class=num>Agen</th><th>Supplier</th>"
             + (f"<th>{e(config.SUPPLIER2_NAME)}</th>" if s2 else "") + f"<th></th></tr>{rows or empty}</table></div>")
     return page("Produk", body, req, "/admin/products")
 

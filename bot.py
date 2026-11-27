@@ -204,6 +204,9 @@ def on_message(m):
         return save_api_ip(uid, text)
     if step == "api_cb":
         return save_api_cb(uid, text)
+    if step == "cek_harga" and is_admin(uid):
+        reset(uid)
+        return price_check(uid, text)
     if step == "tarik_laba" and is_admin(uid):
         reset(uid)
         return record_withdrawal(uid, int(re.sub(r"\D", "", text) or 0), "")
@@ -1063,12 +1066,13 @@ def admin_panel(uid):
                  "/harga2 KODE SKU_SUPPLIER2 MODAL — harga supplier cadangan\n"
                  "/ban ID • /unban ID • /broadcast PESAN\n"
                  "/laba • /tariklaba JUMLAH — keuntungan terpisah\n"
+                 "/cekharga KATA — harga modal & harga jual tiap level\n"
                  "/laporan • /backup • /status • /ip\n"
                  "/pending • /gagal — acc manual (sukseskan, gagalkan, kirim ulang)\n"
                  "/setqris • /setrekening • /hapusqris • /kodeunik — deposit manual\n"
                  "/autoretry 1 3 — kirim ulang otomatis 1x jeda 3 menit\n"
                  "/notifgagal on|off",
-            kb=[[tg.btn("💰 Keuntungan Saya", "adm:laba")],
+            kb=[[tg.btn("💰 Keuntungan Saya", "adm:laba"), tg.btn("🏷 Cek Harga & Modal", "adm:harga")],
                 [tg.btn("📊 Statistik", "adm:stats"), tg.btn("🏭 Supplier", "adm:sup")],
                 [tg.btn("⏳ Pending", "adm:pending"), tg.btn("❌ Gagal 24 jam", "adm:gagal")],
                 [tg.btn("🩺 Status Server", "adm:status"), tg.btn("💾 Backup", "adm:backup")],
@@ -1111,6 +1115,44 @@ def record_withdrawal(uid, amount, note):
                         f"<b>{rp(left - amount)}</b>")
 
 
+def price_check(uid, keyword):
+    keyword = keyword.strip()
+    if not keyword:
+        reset(uid, step="cek_harga")
+        return tg.send(uid, "🏷 Ketik nama / kode / operator yang mau dicek.\nContoh: <code>telkomsel</code>, "
+                            "<code>dana</code>, <code>pln</code>, <code>T10</code>. Ketik /batal untuk batal.")
+    items = db.search_products(keyword, limit=25, include_hidden=True)
+    if not items:
+        return tg.send(uid, f"❌ Tidak ada produk untuk <b>{html.escape(keyword)}</b>. Coba kata lain.")
+    icons = {"member": "👤", "reseller": "🤝", "agen": "⭐"}
+    blocks = [f"🏷 <b>Cek harga: {html.escape(keyword)}</b>\n<i>Modal = harga asli Digiflazz. "
+              f"Angka (+..) = untung Anda.</i>"]
+    for p in items:
+        hidden = " 🙈" if p["admin_off"] or not p["active"] else ""
+        if p["kind"] == "pasca":
+            lines = [f"\n🧾 <b>{html.escape(p['name'][:40])}</b>{hidden}\n🔖 <code>{html.escape(p['code'])}</code>",
+                     f"💵 Admin modal: <b>{rp(p['base_price'])}</b>"]
+            lines += [f"{icons[l]} {LEVEL_LABEL[l]}: +{rp(db.pasca_markup(l))} di atas tagihan" for l in db.LEVELS]
+        else:
+            lines = [f"\n📦 <b>{html.escape(p['name'][:40])}</b>{hidden}\n🔖 <code>{html.escape(p['code'])}</code>",
+                     f"💵 Modal: <b>{rp(p['base_price'])}</b>"]
+            for l in db.LEVELS:
+                sell = service.price_for(p, l)
+                lines.append(f"{icons[l]} {LEVEL_LABEL[l]}: {rp(sell)} (+{rp(sell - p['base_price'])})")
+        blocks.append("\n".join(lines))
+    k = db.komisi()
+    foot = (f"\n\n💡 Jika pembeli punya upline, untung Anda dikurangi komisi {rp(k)}." if k else "")
+    if len(items) == 25:
+        foot += "\n🔎 Ditampilkan 25 teratas, ketik kata yang lebih spesifik untuk hasil lain."
+    text = ""
+    for b in blocks:  # pecah supaya tidak melewati batas panjang pesan Telegram
+        if len(text) + len(b) > 3800:
+            tg.send(uid, text)
+            text = ""
+        text += b + "\n"
+    tg.send(uid, text + foot)
+
+
 def show_withdrawals(uid):
     rows = db.withdrawals(10)
     if not rows:
@@ -1133,6 +1175,8 @@ def admin_action(uid, action):
                             f"(contoh <code>100000</code>). Ketik /batal untuk batal.")
     if action == "tarikriw":
         return show_withdrawals(uid)
+    if action == "harga":
+        return price_check(uid, "")
     if action == "stats":
         return tg.send(uid, jobs.report_text(jobs.day_start(), title="📊 Statistik Hari Ini"))
     if action == "sup":
@@ -1232,6 +1276,8 @@ def admin_command(uid, cmd, arg):
             reset(uid, step="set_qris")
             return tg.send(uid, "📷 Kirim <b>foto QRIS</b> milik Anda (screenshot QRIS dari aplikasi bank / "
                                 "e-wallet / QRIS toko). Foto ini akan ditampilkan ke member saat deposit.")
+        if cmd in ("/cekharga", "/modal"):
+            return price_check(uid, arg)
         if cmd == "/laba":
             return admin_action(uid, "laba")
         if cmd == "/tariklaba":
