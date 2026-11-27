@@ -672,9 +672,8 @@ def show_downline(uid):
 
 def show_account(uid):
     u = db.get_user(uid)
-    flat = db.level_markup(u["level"])
     lines = ["⚙️ <b>Akun Saya</b>\n", f"👤 {html.escape(u['name'] or '-')}", f"🆔 <code>{uid}</code>",
-             f"🏅 Level: <b>{LEVEL_LABEL[u['level']]}</b> (untung server {rp(flat)}/trx)",
+             f"🏅 Level: <b>{LEVEL_LABEL[u['level']]}</b>",
              f"💰 Saldo: {rp(u['balance'])}",
              f"🔐 PIN: {'aktif ✅' if u['pin_hash'] else 'belum dibuat ⚠️'}",
              f"🏪 Nama toko struk: {html.escape(u['shop_name'] or config.STORE_NAME)}",
@@ -1049,16 +1048,18 @@ def admin_panel(uid):
             mode.append("💳 Deposit manual aktif (QRIS/rekening sendiri, acc lewat tombol)")
         else:
             mode.append("⚠️ Deposit belum aktif — kirim foto QRIS dengan caption /setqris")
-    markups = " • ".join(f"{LEVEL_LABEL[l]} {rp(db.level_markup(l))}" for l in db.LEVELS)
+    markups = " • ".join(f"{LEVEL_LABEL[l]} {db.markup_text(l)}" for l in db.LEVELS)
+    pasca = " • ".join(f"{LEVEL_LABEL[l]} {rp(db.pasca_markup(l))}" for l in db.LEVELS)
     tg.send(uid, "🛠 <b>Panel Admin</b>\n\n"
                  f"📦 Produk aktif: {db.count_products()} (sinkron: {last_txt})\n"
-                 f"💹 Markup: {markups} + {db.get_num('markup_percent', config.MARKUP_PERCENT):g}%\n"
-                 f"🎁 Komisi upline: {rp(db.komisi())} • 🧾 Untung tagihan: {rp(db.pasca_markup('member'))}\n"
+                 f"💹 Untung ({'persen dari modal' if db.markup_mode() == 'persen' else 'rupiah per transaksi'}): {markups}\n"
+                 f"🧾 Untung tagihan: {pasca}\n🎁 Komisi upline: {rp(db.komisi())}\n"
                  + ("\n".join(mode) + "\n" if mode else "") +
                  "\n<b>Perintah:</b>\n"
-                 "/markup 1000 2 — untung Member Rp1.000 + 2%\n"
-                 "/markuplevel reseller 700 — untung per level\n"
-                 "/komisi 100 • /pascamarkup 2500\n"
+                 "/persen member 1 • /persen reseller 0,5 • /persen agen 0,3 — untung persen\n"
+                 "/markuplevel reseller 150 — untung rupiah per level (pindah ke mode rupiah)\n"
+                 "/modeuntung persen|rupiah • /komisi 100\n"
+                 "/pascamarkup 500 • /pascamarkup reseller 250 — untung tagihan\n"
                  "/level ID reseller|agen|member\n"
                  "/addsaldo ID JUMLAH • /kurangsaldo ID JUMLAH\n"
                  "/member ID • /cek REF • /trx\n"
@@ -1067,6 +1068,7 @@ def admin_panel(uid):
                  "/ban ID • /unban ID • /broadcast PESAN\n"
                  "/laba • /tariklaba JUMLAH — keuntungan terpisah\n"
                  "/cekharga KATA — harga modal & harga jual tiap level\n"
+                 "/pembulatan 1|50|100 — pembulatan harga jual\n"
                  "/laporan • /backup • /status • /ip\n"
                  "/pending • /gagal — acc manual (sukseskan, gagalkan, kirim ulang)\n"
                  "/setqris • /setrekening • /hapusqris • /kodeunik — deposit manual\n"
@@ -1119,34 +1121,52 @@ def price_check(uid, keyword):
     keyword = keyword.strip()
     if not keyword:
         reset(uid, step="cek_harga")
-        return tg.send(uid, "🏷 Ketik nama / kode / operator yang mau dicek.\nContoh: <code>telkomsel</code>, "
-                            "<code>dana</code>, <code>pln</code>, <code>T10</code>. Ketik /batal untuk batal.")
-    items = db.search_products(keyword, limit=25, include_hidden=True)
+        return tg.send(uid, "🏷 <b>Cek Harga & Untung</b>\n\nKetik nama, kode, atau operator produk.\n"
+                            "Contoh: <code>telkomsel</code>, <code>dana</code>, <code>pln</code>, <code>s50</code>\n\n"
+                            "Ketik /batal untuk membatalkan.")
+    items = db.search_products(keyword, limit=20, include_hidden=True)
     if not items:
-        return tg.send(uid, f"❌ Tidak ada produk untuk <b>{html.escape(keyword)}</b>. Coba kata lain.")
+        return tg.send(uid, f"🔍 Produk <b>{html.escape(keyword)}</b> tidak ditemukan. Coba kata lain, "
+                            f"misalnya nama operator atau kode produk.")
     icons = {"member": "👤", "reseller": "🤝", "agen": "⭐"}
-    blocks = [f"🏷 <b>Cek harga: {html.escape(keyword)}</b>\n<i>Modal = harga asli Digiflazz. "
-              f"Angka (+..) = untung Anda.</i>"]
+    marks = " • ".join(f"{LEVEL_LABEL[l]} {db.markup_text(l)}" for l in db.LEVELS)
+    blocks = [f"🏷 <b>Harga & Untung — {html.escape(keyword)}</b>\n"
+              f"💹 Untung diatur: {marks}\n"
+              f"<i>Harga modal = harga asli dari Digiflazz. Harga jual = yang dibayar pembeli.</i>"]
+    warn = False
     for p in items:
-        hidden = " 🙈" if p["admin_off"] or not p["active"] else ""
+        hidden = "  🙈 <i>(disembunyikan)</i>" if p["admin_off"] or not p["active"] else ""
+        head = f"\n{'🧾' if p['kind'] == 'pasca' else '📦'} <b>{html.escape(p['name'][:42])}</b>{hidden}\n" \
+               f"🔖 Kode: <code>{html.escape(p['code'])}</code>"
         if p["kind"] == "pasca":
-            lines = [f"\n🧾 <b>{html.escape(p['name'][:40])}</b>{hidden}\n🔖 <code>{html.escape(p['code'])}</code>",
-                     f"💵 Admin modal: <b>{rp(p['base_price'])}</b>"]
-            lines += [f"{icons[l]} {LEVEL_LABEL[l]}: +{rp(db.pasca_markup(l))} di atas tagihan" for l in db.LEVELS]
+            lines = [head, f"💵 Biaya admin dari Digiflazz: <b>{rp(p['base_price'])}</b>",
+                     "Untung Anda (ditambahkan ke tagihan):"]
+            lines += [f"{icons[l]} {LEVEL_LABEL[l]} → untung <b>{rp(db.pasca_markup(l))}</b>" for l in db.LEVELS]
         else:
-            lines = [f"\n📦 <b>{html.escape(p['name'][:40])}</b>{hidden}\n🔖 <code>{html.escape(p['code'])}</code>",
-                     f"💵 Modal: <b>{rp(p['base_price'])}</b>"]
+            member_price = service.price_for(p, "member")
+            lines = [head, f"💵 Harga modal: <b>{rp(p['base_price'])}</b>", "Harga jual → untung Anda:"]
             for l in db.LEVELS:
                 sell = service.price_for(p, l)
-                lines.append(f"{icons[l]} {LEVEL_LABEL[l]}: {rp(sell)} (+{rp(sell - p['base_price'])})")
+                flag = " ⚠️" if l != "member" and sell > member_price else ""
+                warn = warn or bool(flag)
+                lines.append(f"{icons[l]} {LEVEL_LABEL[l]}: {rp(sell)} → untung <b>{rp(sell - p['base_price'])}</b>{flag}")
         blocks.append("\n".join(lines))
+    foot = ""
+    if warn:
+        foot += ("\n\n⚠️ Ada level yang harganya <b>lebih mahal dari Member</b>. Biasanya Reseller/Agen dibuat lebih "
+                 "murah. Atur dengan <code>/markuplevel reseller 100</code> dan <code>/markuplevel agen 100</code>.")
+    step = int(db.get_num("price_round", config.PRICE_ROUND))
+    if step > 1:
+        foot += (f"\n\nℹ️ Harga jual dibulatkan ke atas ke kelipatan {rp(step)}, jadi untung bisa sedikit lebih besar. "
+                 f"Untuk untung persis: <code>/pembulatan 1</code>")
     k = db.komisi()
-    foot = (f"\n\n💡 Jika pembeli punya upline, untung Anda dikurangi komisi {rp(k)}." if k else "")
-    if len(items) == 25:
-        foot += "\n🔎 Ditampilkan 25 teratas, ketik kata yang lebih spesifik untuk hasil lain."
+    if k:
+        foot += f"\n\n👥 Jika pembeli punya upline, untung Anda dikurangi komisi upline {rp(k)}."
+    if len(items) == 20:
+        foot += "\n\n🔎 Menampilkan 20 produk pertama. Ketik kata yang lebih spesifik untuk hasil lain."
     text = ""
     for b in blocks:  # pecah supaya tidak melewati batas panjang pesan Telegram
-        if len(text) + len(b) > 3800:
+        if len(text) + len(b) > 3600:
             tg.send(uid, text)
             text = ""
         text += b + "\n"
@@ -1276,6 +1296,17 @@ def admin_command(uid, cmd, arg):
             reset(uid, step="set_qris")
             return tg.send(uid, "📷 Kirim <b>foto QRIS</b> milik Anda (screenshot QRIS dari aplikasi bank / "
                                 "e-wallet / QRIS toko). Foto ini akan ditampilkan ke member saat deposit.")
+        if cmd == "/pembulatan":
+            if not parts:
+                cur = int(db.get_num("price_round", config.PRICE_ROUND))
+                return tg.send(uid, f"🔢 Pembulatan harga jual saat ini: <b>{'tanpa pembulatan' if cur <= 1 else rp(cur)}</b>\n\n"
+                                    "<code>/pembulatan 1</code> — untung persis sesuai pengaturan\n"
+                                    "<code>/pembulatan 50</code> — harga dibulatkan ke atas kelipatan Rp50\n"
+                                    "<code>/pembulatan 100</code> — harga dibulatkan ke atas kelipatan Rp100")
+            val = max(1, num(0))
+            db.set_setting("price_round", val)
+            return tg.send(uid, "✅ " + ("Harga jual sekarang persis modal + untung." if val <= 1 else
+                                        f"Harga jual dibulatkan ke atas ke kelipatan {rp(val)}."))
         if cmd in ("/cekharga", "/modal"):
             return price_check(uid, arg)
         if cmd == "/laba":
@@ -1301,19 +1332,48 @@ def admin_command(uid, cmd, arg):
                                     "Hapus: <code>/setrekening hapus</code>")
             db.set_setting("manual_info", "" if arg.lower() == "hapus" else arg[:500])
             return tg.send(uid, "✅ Info rekening " + ("dihapus." if arg.lower() == "hapus" else "disimpan."))
+        if cmd == "/persen":
+            level = parts[0].lower() if parts else ""
+            if level == "agent":
+                level = "agen"
+            if level not in db.LEVELS or len(parts) < 2:
+                return tg.send(uid, "Format: <code>/persen member 1</code> • <code>/persen reseller 0,5</code> • "
+                                    "<code>/persen agen 0,3</code>")
+            val = float(parts[1].replace(",", ".").replace("%", ""))
+            if not 0 <= val <= 50:
+                return tg.send(uid, "❌ Persen harus antara 0 dan 50.")
+            db.set_setting(f"markup_pct_{level}", val)
+            db.set_setting("markup_mode", "persen")
+            return tg.send(uid, f"✅ Untung {LEVEL_LABEL[level]}: <b>{db.pct_text(val)}</b> dari harga modal.\n"
+                                f"Cek hasilnya: <code>/cekharga telkomsel</code>")
+        if cmd == "/modeuntung":
+            mode = (parts[0].lower() if parts else "")
+            if mode not in ("persen", "rupiah"):
+                return tg.send(uid, f"Mode untung sekarang: <b>{db.markup_mode()}</b>\n"
+                                    "<code>/modeuntung persen</code> — untung persen dari modal\n"
+                                    "<code>/modeuntung rupiah</code> — untung nominal tetap per transaksi")
+            db.set_setting("markup_mode", mode)
+            return tg.send(uid, f"✅ Mode untung: <b>{mode}</b>. " +
+                           " • ".join(f"{LEVEL_LABEL[l]} {db.markup_text(l)}" for l in db.LEVELS))
         if cmd == "/markup":
             db.set_setting("markup_member", num(0))
             db.set_setting("markup_percent", float(parts[1].replace(",", ".")) if len(parts) > 1 else 0)
-            return tg.send(uid, "✅ Markup diubah. Harga langsung berlaku.")
+            db.set_setting("markup_mode", "rupiah")
+            return tg.send(uid, "✅ Untung Member diubah (mode rupiah). Harga langsung berlaku.")
         if cmd == "/markuplevel":
             if parts[0] not in db.LEVELS:
                 return tg.send(uid, "Level: member, reseller, agen")
             db.set_setting(f"markup_{parts[0]}", num(1))
-            return tg.send(uid, f"✅ Untung level {parts[0]}: {rp(num(1))}")
+            db.set_setting("markup_mode", "rupiah")
+            return tg.send(uid, f"✅ Untung level {parts[0]}: {rp(num(1))} (mode rupiah)")
         if cmd == "/komisi":
             db.set_setting("komisi_upline", num(0))
             return tg.send(uid, f"✅ Komisi upline: {rp(num(0))}")
         if cmd == "/pascamarkup":
+            if parts and parts[0].lower() in ("reseller", "agen", "member"):
+                level = parts[0].lower()
+                db.set_setting("pasca_markup" if level == "member" else f"pasca_markup_{level}", num(1))
+                return tg.send(uid, f"✅ Untung tagihan {LEVEL_LABEL[level]}: {rp(num(1))}")
             db.set_setting("pasca_markup", num(0))
             return tg.send(uid, f"✅ Untung tagihan (Member): {rp(num(0))}")
         if cmd == "/level":

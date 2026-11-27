@@ -2,6 +2,13 @@
 import os
 
 
+def _float(name, default):
+    try:
+        return float(os.getenv(name, str(default)).replace(",", ".").strip())
+    except ValueError:
+        return float(default)
+
+
 def _bool(name, default="false"):
     return os.getenv(name, default).strip().lower() in ("1", "true", "yes", "ya", "on")
 
@@ -52,12 +59,19 @@ SUPPLIER2_SN = os.getenv("SUPPLIER2_SN", "").strip() or r"(?i)\bSN\s*[:=]?\s*([A
 SUPPLIER2_SECRET = os.getenv("SUPPLIER2_SECRET", "").strip()       # token rahasia di URL callback
 
 # --- Bisnis ---
-MARKUP_FLAT = _int("MARKUP_FLAT", 500)        # untung per transaksi level Member (Rp)
+# Cara menghitung untung: "persen" (persen dari harga modal) atau "rupiah" (nominal tetap per transaksi)
+MARKUP_MODE = os.getenv("MARKUP_MODE", "persen").strip().lower()
+MARKUP_PCT_MEMBER = _float("MARKUP_PCT_MEMBER", 1.0)      # mode persen: untung Member 1% dari modal
+MARKUP_PCT_RESELLER = _float("MARKUP_PCT_RESELLER", 0.5)
+MARKUP_PCT_AGEN = _float("MARKUP_PCT_AGEN", 0.3)
+MARKUP_FLAT = _int("MARKUP_FLAT", 500)        # mode rupiah: untung per transaksi level Member (Rp)
 MARKUP_RESELLER = _int("MARKUP_RESELLER", 150)
 MARKUP_AGEN = _int("MARKUP_AGEN", 100)
 MARKUP_PERCENT = _int("MARKUP_PERCENT", 0)     # untung tambahan dalam persen (semua level)
 KOMISI_UPLINE = _int("KOMISI_UPLINE", 100)     # komisi untuk upline per transaksi sukses downline
-PASCA_MARKUP = _int("PASCA_MARKUP", 500)      # untung tagihan level Member
+PASCA_MARKUP = _int("PASCA_MARKUP", 500)      # untung tagihan level Member (Rp)
+PASCA_MARKUP_RESELLER = _int("PASCA_MARKUP_RESELLER", 250)
+PASCA_MARKUP_AGEN = _int("PASCA_MARKUP_AGEN", 150)
 LOW_BALANCE_ALERT = _int("LOW_BALANCE_ALERT", 300000)
 BOT_USERNAME = ""  # diisi otomatis saat bot menyala
 PRICE_ROUND = _int("PRICE_ROUND", 1)  # 1 = harga jual persis modal + untung; 50/100 = dibulatkan ke atas

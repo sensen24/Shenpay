@@ -200,21 +200,48 @@ def get_num(key, default):
 
 
 # ---------------- harga ----------------
+def markup_mode():
+    m = (get_setting("markup_mode") or config.MARKUP_MODE or "persen").lower()
+    return m if m in ("persen", "rupiah") else "persen"
+
+
 def level_markup(level):
+    """Untung nominal (Rp) per transaksi — hanya dipakai di mode rupiah."""
+    if markup_mode() != "rupiah":
+        return 0
     defaults = {"member": config.MARKUP_FLAT, "reseller": config.MARKUP_RESELLER, "agen": config.MARKUP_AGEN}
     return int(get_num(f"markup_{level}", defaults.get(level, config.MARKUP_FLAT)))
 
 
+def level_pct(level):
+    """Untung persen dari harga modal — hanya dipakai di mode persen."""
+    if markup_mode() != "persen":
+        return 0.0
+    defaults = {"member": config.MARKUP_PCT_MEMBER, "reseller": config.MARKUP_PCT_RESELLER, "agen": config.MARKUP_PCT_AGEN}
+    return float(get_num(f"markup_pct_{level}", defaults.get(level, config.MARKUP_PCT_MEMBER)))
+
+
+def pct_text(x):
+    return f"{x:g}".replace(".", ",") + "%"
+
+
+def markup_text(level):
+    return pct_text(level_pct(level)) if markup_mode() == "persen" else f"Rp{level_markup(level):,}".replace(",", ".")
+
+
 def pasca_markup(level):
-    base = int(get_num("pasca_markup", config.PASCA_MARKUP))
-    # reseller & agen dapat potongan sebanding selisih markup prabayar mereka
-    return max(0, base - (level_markup("member") - level_markup(level)))
+    keys = {"member": ("pasca_markup", config.PASCA_MARKUP),
+            "reseller": ("pasca_markup_reseller", config.PASCA_MARKUP_RESELLER),
+            "agen": ("pasca_markup_agen", config.PASCA_MARKUP_AGEN)}
+    key, default = keys.get(level, keys["member"])
+    return max(0, int(get_num(key, default)))
 
 
 def sell_price(base, level="member"):
-    pct = get_num("markup_percent", config.MARKUP_PERCENT)
+    pct = get_num("markup_percent", config.MARKUP_PERCENT) + level_pct(level)
     price = base + level_markup(level) + base * pct / 100
-    return int(-(-price // 100) * 100)  # bulatkan ke atas kelipatan 100
+    step = max(1, int(get_num("price_round", config.PRICE_ROUND)))
+    return int(-(-price // step) * step)  # step 1 = persis; 50/100 = bulatkan ke atas
 
 
 def komisi():

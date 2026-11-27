@@ -1063,8 +1063,9 @@ def admin_products(req):
     sup_box = (f"<div class=kpis><div class=kpi><small>Supplier utama</small><div class=v>Digiflazz</div>"
                f"<div class=s>{status}</div></div><div class=kpi><small>Produk aktif</small><div class=v>"
                f"{db.count_products()}</div><div class=s>sinkron otomatis tiap 6 jam</div></div>"
-               f"<div class=kpi><small>Untung per transaksi</small><div class=v>{rp(db.level_markup('member'))}</div>"
-               f"<div class=s>Member, ubah di Pengaturan</div></div><div class=kpi><small>Level harga</small>"
+               f"<div class=kpi><small>Untung Member</small><div class=v>{db.markup_text('member')}</div>"
+               f"<div class=s>{'dari harga modal' if db.markup_mode() == 'persen' else 'per transaksi'}, ubah di Pengaturan"
+               f"</div></div><div class=kpi><small>Level harga</small>"
                f"<div class=v>3</div><div class=s>Member, Reseller, Agen</div></div></div>")
     empty = ("<tr><td colspan=9 class=empty>Belum ada produk. Daftar produk (pulsa, data, token PLN, e-wallet, game, "
              "tagihan) akan terisi otomatis dari Digiflazz setelah API terhubung.</td></tr>")
@@ -1101,12 +1102,18 @@ def admin_products(req):
     return page("Produk", body, req, "/admin/products")
 
 
-SETTINGS = [("markup_member", "Untung Member (Rp)", config.MARKUP_FLAT),
-            ("markup_reseller", "Untung Reseller (Rp)", config.MARKUP_RESELLER),
-            ("markup_agen", "Untung Agen (Rp)", config.MARKUP_AGEN),
+SETTINGS = [("markup_pct_member", "Mode persen: untung Member (% dari modal)", config.MARKUP_PCT_MEMBER),
+            ("markup_pct_reseller", "Mode persen: untung Reseller (%)", config.MARKUP_PCT_RESELLER),
+            ("markup_pct_agen", "Mode persen: untung Agen (%)", config.MARKUP_PCT_AGEN),
+            ("markup_member", "Mode rupiah: untung Member (Rp)", config.MARKUP_FLAT),
+            ("markup_reseller", "Mode rupiah: untung Reseller (Rp)", config.MARKUP_RESELLER),
+            ("markup_agen", "Mode rupiah: untung Agen (Rp)", config.MARKUP_AGEN),
             ("markup_percent", "Untung tambahan (%)", config.MARKUP_PERCENT),
             ("komisi_upline", "Komisi upline per transaksi (Rp)", config.KOMISI_UPLINE),
             ("pasca_markup", "Untung tagihan Member (Rp)", config.PASCA_MARKUP),
+            ("pasca_markup_reseller", "Untung tagihan Reseller (Rp)", config.PASCA_MARKUP_RESELLER),
+            ("pasca_markup_agen", "Untung tagihan Agen (Rp)", config.PASCA_MARKUP_AGEN),
+            ("price_round", "Pembulatan harga jual (1 = untung persis, 50 / 100 = bulatkan ke atas)", config.PRICE_ROUND),
             ("low_balance_alert", "Peringatan saldo supplier di bawah (Rp)", config.LOW_BALANCE_ALERT),
             ("auto_retry", "Kirim ulang otomatis sebelum refund (kali)", 1),
             ("auto_retry_delay", "Jeda kirim ulang (menit)", 3),
@@ -1263,11 +1270,14 @@ def admin_settings(req):
             msg = f"Pengumuman dikirim ke {len(ids)} member."
         else:
             msg = "Isi pengumuman masih kosong."
+    elif req.method == "POST" and csrf_ok(req) and req.form.get("action") == "mode":
+        db.set_setting("markup_mode", "rupiah" if req.form.get("mode") == "rupiah" else "persen")
+        msg = "Mode untung disimpan."
     elif req.method == "POST" and csrf_ok(req):
         for key, _, _ in SETTINGS:
             val = req.form.get(key, "").replace(",", ".").strip()
             try:
-                db.set_setting(key, float(val) if key == "markup_percent" else int(float(val)))
+                db.set_setting(key, float(val) if key.startswith("markup_p") else int(float(val)))
             except ValueError:
                 pass
         msg = "Pengaturan disimpan & langsung berlaku."
@@ -1283,6 +1293,12 @@ def admin_settings(req):
             f"</button></form></div><div class=box><h2>Pengumuman ke semua member</h2><form method=post>{csrf(req)}"
             f"<p><textarea name=text rows=3 style='width:100%' placeholder='Contoh: Harga pulsa Telkomsel turun hari ini!'>"
             f"</textarea></p><button name=action value=broadcast>Kirim ke Telegram member</button></form></div></div>"
+            f"<div class=box><h2>Cara menghitung untung</h2><form method=post>{csrf(req)}"
+            f"<p><label><input type=radio name=mode value=persen {'checked' if db.markup_mode() == 'persen' else ''}> "
+            f"Persen dari harga modal (contoh: modal Rp49.705, untung 1% = Rp498)</label><br>"
+            f"<label><input type=radio name=mode value=rupiah {'checked' if db.markup_mode() == 'rupiah' else ''}> "
+            f"Nominal tetap per transaksi (contoh: untung Rp500)</label></p>"
+            f"<button name=action value=mode>Simpan mode</button></form></div>"
             f"<div class=box><h2>Pengaturan harga & bisnis</h2>"
             f"<form method=post>{csrf(req)}{fields}<button>Simpan</button></form></div>")
     return page("Pengaturan", body, req, "/admin/settings")
