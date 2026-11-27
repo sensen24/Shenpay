@@ -409,6 +409,8 @@ border-bottom:1px solid transparent;transition:border-color .3s,box-shadow .3s}
 .prog{height:3px;background:linear-gradient(90deg,var(--jade),var(--volt));transform-origin:left;transform:scaleX(0)}
 /* gelombang sinyal */
 .rwrap{position:relative;justify-self:center;width:100%;max-width:380px;isolation:isolate}.rwrap .receipt{justify-self:auto}
+.rwrap:before{content:"";position:absolute;inset:8% -12% -6%;z-index:-1;border-radius:32px;
+background:linear-gradient(135deg,#0A9F6B1a,#F5B82E1f);filter:blur(28px)}
 .waves{position:absolute;inset:0;z-index:-1;pointer-events:none}.waves i{position:absolute;left:50%;top:45%;width:320px;
 height:320px;margin:-160px;border-radius:50%;border:2px solid #0A9F6B40;animation:ping 5.4s cubic-bezier(.2,.6,.3,1) infinite}
 .waves i:nth-child(2){animation-delay:1.8s;border-color:#F5B82E55}.waves i:nth-child(3){animation-delay:3.6s}
@@ -524,7 +526,7 @@ Cocok untuk konter, warung, dan reseller dari rumah.</p>
 <div class=facts><div><b class=count data-to="{db.count_products()}">{db.count_products()}</b><span>produk aktif</span></div>
 <div><b class=count data-to="{month['trx']}">{month['trx']:,}</b><span>transaksi sukses 30 hari</span></div>{rate_fact}</div>
 </div>
-<div class=rwrap><div class=waves aria-hidden=true><i></i><i></i><i></i></div>
+<div class=rwrap>
 <div class=receipt aria-label="Transaksi sukses terbaru"><h3>{e(config.STORE_NAME)}</h3>
 <div class=sub><span class=live></span>Transaksi sukses terbaru</div><div id=rlist>{lines}</div>
 <div class=rfoot>Nomor tujuan disamarkan demi privasi</div></div></div></section></div>
