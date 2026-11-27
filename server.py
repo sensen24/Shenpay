@@ -57,6 +57,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json(200, {"ok": True})
             if path.startswith("/callback/h2h/"):
                 return self.h2h_report(path, query)
+            if path == "/api/h2h":
+                code, text = reseller_api.handle_otomax(query, self.client_ip())
+                return self.send(code, {"Content-Type": "text/plain; charset=utf-8"}, text)
             self.send(*web.handle("GET", path, query, {}, self._cookies(), self.client_ip()))
         except Exception:
             log.exception("Error GET %s", path)
@@ -73,6 +76,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.digiflazz(raw)
             if path.startswith("/callback/h2h/"):
                 return self.h2h_report(path, {**query, **web.parse_form(raw)})
+            if path == "/api/h2h":
+                code, text = reseller_api.handle_otomax({**query, **web.parse_form(raw)}, self.client_ip())
+                return self.send(code, {"Content-Type": "text/plain; charset=utf-8"}, text)
             if path.startswith("/api/v1/"):
                 code, obj = reseller_api.handle(path, raw, self.client_ip())
                 return self.json(code, obj)

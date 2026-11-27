@@ -124,6 +124,7 @@ EXTRA_COLUMNS = {
         ("pin_hash", "TEXT"), ("pin_fail", "INTEGER NOT NULL DEFAULT 0"),
         ("pin_lock_until", "INTEGER NOT NULL DEFAULT 0"), ("shop_name", "TEXT"),
         ("api_key", "TEXT"), ("api_ip", "TEXT"), ("api_callback", "TEXT"),
+        ("api_format", "TEXT NOT NULL DEFAULT 'otomax'"),
     ],
     "transactions": [
         ("supplier", "TEXT"), ("supplier_ref", "TEXT"), ("tried", "TEXT NOT NULL DEFAULT ''"),
@@ -274,7 +275,7 @@ def set_level(tg_id, level):
 
 
 def set_user_field(tg_id, field, value):
-    assert field in ("shop_name", "api_key", "api_ip", "api_callback")
+    assert field in ("shop_name", "api_key", "api_ip", "api_callback", "api_format")
     conn().execute(f"UPDATE users SET {field}=? WHERE tg_id=?", (value, tg_id))
 
 

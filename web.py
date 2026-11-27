@@ -845,10 +845,12 @@ def api_page(req):
     body = (f"{msg_box(msg)}<div class=grid2 style='margin-bottom:18px'><div class=box><h2>Kredensial</h2>"
             f"<p class=muted>Username</p><p><code>{u['tg_id']}</code></p>"
             f"<p class=muted>API key</p><p><code>{e(key) if key else 'Belum dibuat'}</code></p>"
-            f"<p class=muted>Endpoint</p><p><code>{e(config.PUBLIC_URL)}/api/v1</code></p>"
+            f"<p class=muted>URL format OtomaX</p><p><code>{e(config.PUBLIC_URL)}/api/h2h?memberID={u['tg_id']}"
+            f"&amp;pin=PIN&amp;password={e(key or 'APIKEY')}&amp;product=KODE&amp;dest=TUJUAN&amp;refID=REFID</code></p>"
+            f"<p class=muted>Endpoint format JSON</p><p><code>{e(config.PUBLIC_URL)}/api/v1</code></p>"
             f"<form method=post class=inline>{csrf(req)}<input type=hidden name=action value=newkey>"
             f"<button class=sec>{'Ganti API key' if key else 'Buat API key'}</button></form> "
-            f"<a class='btn sec' href=/docs/api>Baca dokumentasi</a></div>"
+            f"<a class='btn sec' href=/docs/api>Baca panduan H2H</a></div>"
             f"<div class=box><h2>Keamanan dan callback</h2><form method=post>{csrf(req)}"
             f"<p><label class=muted for=ip>IP yang diizinkan (pisahkan koma, kosongkan untuk semua IP)</label><br>"
             f"<input id=ip name=ip style='width:100%' value='{e(u['api_ip'] or '')}'></p>"
@@ -860,8 +862,34 @@ def api_page(req):
 
 def api_docs(req):
     base = e(config.PUBLIC_URL or "https://DOMAIN-ANDA")
-    body = f"""<div class=box><h2>Dokumentasi API H2H</h2>
-<p>Semua request memakai <b>POST JSON</b>. <code>username</code> adalah ID Telegram, <code>sign</code> = md5(username + api_key + teks).</p>
+    store = e(config.STORE_NAME)
+    body = f"""<div class=box><h2>Panduan koneksi H2H {store}</h2>
+<p>Sambungkan software atau server pulsa Anda langsung ke {store}. Ada dua format, pilih yang didukung software Anda.
+Data akun (Member ID, API Key) didapat dari bot Telegram: menu <b>Akun</b> lalu <b>Koneksi H2H</b>, atau ketik <code>/h2h</code>.</p>
+<h3>Langkah singkat</h3>
+<p>1. Ketik <code>/h2h</code> di bot untuk melihat Member ID dan API Key.<br>
+2. Tekan <b>Atur IP Server</b> dan isi IP publik server Anda (disarankan).<br>
+3. Tekan <b>Atur Callback</b> dan isi URL laporan dari software Anda, supaya status sukses/gagal terkirim otomatis.<br>
+4. Masukkan URL transaksi di bawah ini ke software Anda, lalu tes dengan nominal kecil.</p></div>
+
+<div class=box><h2>Format 1: OtomaX / teks (paling mudah)</h2>
+<p>Request <b>GET</b> (atau POST form). Balasan berupa satu baris teks.</p>
+<h3>Transaksi</h3>
+<p><code>{base}/api/h2h?memberID=ID&amp;pin=PIN&amp;password=APIKEY&amp;product=KODE&amp;dest=TUJUAN&amp;refID=REFID</code></p>
+<p>Contoh balasan:<br><code>R#REFID T10.081234567890 SUKSES. SN: 1234567890. Harga 11200. Saldo 38800</code><br>
+<code>R#REFID T10.081234567890 sedang diproses. Harga 11200. Saldo 38800</code><br>
+<code>R#REFID T10.081234567890 GAGAL. Nomor tujuan salah. Saldo 50000</code></p>
+<p>Kata kunci untuk dibaca software: <b>SUKSES</b>, <b>GAGAL</b>, <b>sedang diproses</b>. SN ada setelah <code>SN:</code>.
+Transaksi gagal otomatis mengembalikan saldo.</p>
+<h3>Cek saldo</h3><p><code>{base}/api/h2h?memberID=ID&amp;pin=PIN&amp;password=APIKEY</code> &rarr; <code>Saldo 38800. ID 123</code></p>
+<h3>Cek status</h3><p>Kirim ulang URL transaksi dengan <code>refID</code> yang sama. Saldo tidak terpotong dua kali.</p>
+<h3>Laporan status (callback)</h3>
+<p>Saat status berubah, server mengirim GET ke URL callback Anda:<br>
+<code>URL_CALLBACK?refid=REFID&amp;message=TEKS_BALASAN&amp;status=Sukses&amp;sn=1234&amp;price=11200</code></p>
+<p><code>pin</code> wajib jika akun Anda memakai PIN transaksi. Tagihan pascabayar memakai Format 2.</p></div>
+
+<div class=box><h2>Format 2: JSON (mirip Digiflazz)</h2>
+<p>Semua request <b>POST JSON</b>. <code>username</code> adalah Member ID, <code>sign</code> = md5(username + api_key + teks).</p>
 <h3>Cek saldo</h3><p><code>POST {base}/api/v1/cek-saldo</code></p>
 <p><code>{{"username":"123","sign":"md5(123+KEY+depo)"}}</code></p>
 <h3>Daftar harga</h3><p><code>POST {base}/api/v1/price-list</code></p>
@@ -872,9 +900,9 @@ def api_docs(req):
 <b>Gagal</b> (rc 02, saldo dikembalikan).</p>
 <h3>Tagihan pascabayar</h3><p>Kirim <code>"commands":"inq-pasca"</code> untuk cek tagihan, lalu <code>"commands":"pay-pasca"</code>
 dengan <code>ref_id</code> yang sama untuk membayar.</p>
-<h3>Callback</h3><p>Status akhir dikirim POST ke URL callback Anda dengan format yang sama seperti respon transaksi.
-Header <code>X-Hub-Signature: sha1=HMAC_SHA1(body, api_key)</code> untuk memastikan pesan asli.</p></div>"""
-    return page("Dokumentasi API", body, req)
+<h3>Callback</h3><p>Pilih format laporan <b>JSON</b> di bot (tombol Format). Status akhir dikirim POST ke URL callback Anda
+dengan header <code>X-Hub-Signature: sha1=HMAC_SHA1(body, api_key)</code>.</p></div>"""
+    return page("Panduan H2H", body, req)
 
 
 # ---------------- admin ----------------

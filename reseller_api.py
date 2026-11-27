@@ -6,7 +6,16 @@ POST /api/v1/transaction {"username": ID, "buyer_sku_code": KODE, "customer_no":
                           "sign": md5(ID+APIKEY+REF), "commands": "inq-pasca"|"pay-pasca" (opsional)}
 Mengirim ulang ref_id yang sama = cek status.
 Callback status: POST ke URL callback reseller, header X-Hub-Signature: sha1=HMAC_SHA1(body, APIKEY)
+
+Format OtomaX / teks (GET atau POST form), paling mudah untuk software server pulsa:
+GET /api/h2h?memberID=ID&pin=PIN&password=APIKEY&product=KODE&dest=TUJUAN&refID=REF
+  -> "R#REF KODE.TUJUAN SUKSES. SN: xxx. Harga 6400. Saldo 43600"
+GET /api/h2h?memberID=ID&pin=PIN&password=APIKEY            -> cek saldo
+Kirim ulang refID yang sama = cek status.
+Laporan status (callback): GET URL_CALLBACK?refid=REF&message=TEKS&status=..&sn=..&price=..
 """
+import time
+import urllib.parse
 import hashlib
 import hmac
 import json
@@ -123,6 +132,65 @@ def handle(path, raw, client_ip):
     return _err("40", "Endpoint tidak dikenal", 404)
 
 
+# ---------------- format OtomaX / teks ----------------
+def _p(params, *names):
+    low = {k.lower(): v for k, v in params.items()}
+    for n in names:
+        if low.get(n.lower()):
+            return str(low[n.lower()]).strip()
+    return ""
+
+
+def otomax_text(t, balance):
+    head = f"R#{t['api_ref'] or t['ref_id']} {t['sku']}.{t['target']}"
+    if t["status"] == "Sukses":
+        return f"{head} SUKSES. SN: {t['sn'] or '-'}. Harga {t['sell_price']}. Saldo {balance}"
+    if t["status"] == "Gagal":
+        return f"{head} GAGAL. {_plain(t['message'] or 'Transaksi gagal')}. Saldo {balance}"
+    return f"{head} sedang diproses. Harga {t['sell_price']}. Saldo {balance}"
+
+
+def handle_otomax(params, client_ip):
+    """Return (http_code, teks)."""
+    try:
+        uid = int(_p(params, "memberID", "memberid", "username", "id"))
+    except ValueError:
+        return 401, "GAGAL. memberID salah"
+    u = db.get_user(uid)
+    password = _p(params, "password", "pass", "key", "apikey")
+    if not u or not u["api_key"] or u["banned"] or not hmac.compare_digest(u["api_key"], password):
+        return 401, "GAGAL. memberID atau password salah"
+    if u["api_ip"]:
+        allowed = {x.strip() for x in u["api_ip"].split(",") if x.strip()}
+        if client_ip not in allowed:
+            return 403, f"GAGAL. IP {client_ip} tidak diizinkan"
+    if u["pin_hash"]:
+        res = db.check_pin(uid, _p(params, "pin"))
+        if res == "locked":
+            return 403, "GAGAL. PIN terkunci sementara karena salah berkali-kali"
+        if res != "ok":
+            return 401, "GAGAL. PIN salah"
+    product, dest, ref = _p(params, "product", "kode", "code"), _p(params, "dest", "tujuan", "msisdn"), \
+        _p(params, "refID", "refid", "ref_id", "trxid")
+    if not product or product.upper() in ("SAL", "SALDO", "CEKSALDO"):
+        return 200, f"Saldo {u['balance']}. ID {uid}"
+    if not ref or len(ref) > 50:
+        return 400, "GAGAL. refID wajib diisi (maks 50 karakter)"
+    existing = db.get_trx_by_api_ref(uid, ref)
+    if existing:
+        return 200, otomax_text(existing, db.balance(uid))
+    dest = "".join(ch for ch in dest if ch.isalnum())
+    p = db.product_by_code(product)
+    if not p or p["kind"] == "pasca":
+        return 200, f"R#{ref} {product}.{dest} GAGAL. Kode produk tidak ditemukan. Saldo {u['balance']}"
+    if not dest:
+        return 400, f"R#{ref} GAGAL. Tujuan wajib diisi"
+    ok, msg, t = service.buy(uid, p, dest, via="api", api_ref=ref)
+    if not ok:
+        return 200, f"R#{ref} {product}.{dest} GAGAL. {_plain(msg)}. Saldo {db.balance(uid)}"
+    return 200, otomax_text(db.get_trx(t["ref_id"]), db.balance(uid))
+
+
 def _plain(msg):
     import re
     return re.sub(r"<[^>]+>", "", msg).replace("❌ ", "").split("\n")[0]
@@ -132,17 +200,24 @@ def send_callback(t):
     u = db.get_user(t["tg_id"])
     if not u or not u["api_callback"]:
         return
-    body = json.dumps({"data": trx_data(t, u["balance"])}).encode()
-    sig = "sha1=" + hmac.new(u["api_key"].encode(), body, hashlib.sha1).hexdigest()
+    if (u["api_format"] or "otomax") == "otomax":
+        q = urllib.parse.urlencode({"refid": t["api_ref"] or t["ref_id"], "message": otomax_text(t, u["balance"]),
+                                    "status": t["status"], "sn": t["sn"] or "", "price": t["sell_price"]})
+        url = u["api_callback"] + ("&" if "?" in u["api_callback"] else "?") + q
+        method, body, headers = "GET", None, {}
+    else:
+        body = json.dumps({"data": trx_data(t, u["balance"])}).encode()
+        sig = "sha1=" + hmac.new(u["api_key"].encode(), body, hashlib.sha1).hexdigest()
+        url, method, headers = u["api_callback"], "POST", {"Content-Type": "application/json", "X-Hub-Signature": sig}
 
     def _go():
-        for _ in range(3):
+        for i in range(3):
             try:
-                net.request_text("POST", u["api_callback"], body, {"Content-Type": "application/json",
-                                                                   "X-Hub-Signature": sig}, timeout=20)
+                net.request_text(method, url, body, headers, timeout=20)
                 return
             except net.NetError as e:
                 log.info("callback reseller %s gagal: %s", t["tg_id"], e)
+                time.sleep(2 * (i + 1))
     _spawn(_go)
 
 

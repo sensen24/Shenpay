@@ -1,5 +1,6 @@
 """Semua tampilan & alur bot Telegram."""
 import html
+import ipaddress
 import logging
 import re
 import secrets
@@ -199,6 +200,10 @@ def on_message(m):
         sn = "" if text.strip() in ("-", "0") else text.strip()[:120]
         ok, out = service.admin_success(ref, sn, uid)
         return tg.send(uid, out)
+    if step == "api_ip":
+        return save_api_ip(uid, text)
+    if step == "api_cb":
+        return save_api_cb(uid, text)
     if step == "tarik_laba" and is_admin(uid):
         reset(uid)
         return record_withdrawal(uid, int(re.sub(r"\D", "", text) or 0), "")
@@ -249,8 +254,10 @@ def on_command(uid, name, cmd, arg):
             return tg.send(uid, "Format: /struk ID_TRANSAKSI [HARGA_JUAL]\ncontoh: /struk TRX2611270001 12000")
         price = int(re.sub(r"\D", "", parts[1]) or 0) if len(parts) > 1 else None
         return send_receipt(uid, parts[0], price)
-    if cmd == "/apikey":
-        return show_api(uid, regenerate=arg.lower() == "baru")
+    if cmd in ("/apikey", "/h2h"):
+        if arg.lower() == "baru":
+            return h2h_action(uid, "new")
+        return show_api(uid)
     if cmd == "/apiip":
         db.set_user_field(uid, "api_ip", arg.replace(" ", "") or None)
         return tg.send(uid, f"✅ IP whitelist API: <code>{html.escape(arg or 'semua IP')}</code>")
@@ -670,7 +677,7 @@ def show_account(uid):
              f"🏪 Nama toko struk: {html.escape(u['shop_name'] or config.STORE_NAME)}",
              f"🔑 API H2H: {'aktif' if u['api_key'] else 'belum aktif'}"]
     kb = [[tg.btn("🔐 Atur PIN", "pin"), tg.btn("🏪 Nama Toko", "shop")],
-          [tg.btn("🔑 API Key", "apikey"), tg.btn("⚡ Format Cepat", "fmt")]]
+          [tg.btn("🔌 Koneksi H2H", "apikey"), tg.btn("⚡ Format Cepat", "fmt")]]
     if web_url():
         kb.append([tg.url_btn("🌐 Buka Web Panel", web_url("/login"))])
     tg.send(uid, "\n".join(lines), kb=kb)
@@ -682,15 +689,98 @@ def show_api(uid, regenerate=False):
     if not key or regenerate:
         key = secrets.token_hex(20)
         db.set_user_field(uid, "api_key", key)
-    docs = web_url("/docs/api") or "(aktifkan domain server untuk melihat dokumentasi)"
-    tg.send(uid, "🔑 <b>API H2H Reseller</b>\n\n"
-                 f"Username: <code>{uid}</code>\nAPI Key: <code>{key}</code>\n"
-                 f"Endpoint: <code>{html.escape(web_url('/api/v1') or '-')}</code>\n"
-                 f"IP whitelist: <code>{html.escape(u['api_ip'] or 'semua IP')}</code>\n"
-                 f"Callback: <code>{html.escape(u['api_callback'] or '-')}</code>\n\n"
-                 "/apiip 1.2.3.4 — batasi IP\n/apicallback https://... — URL laporan status\n"
-                 "/apikey baru — ganti API key\n\n"
-                 f"📖 Dokumentasi: {html.escape(docs)}\n⚠️ Jangan bagikan API key ke siapa pun.")
+        u = db.get_user(uid)
+    base = web_url() or "https://DOMAIN-SERVER"
+    fmt = u["api_format"] or "otomax"
+    pin_txt = "PIN transaksi Anda" if u["pin_hash"] else "belum dibuat (opsional, buat dengan /pin)"
+    ip_txt = f"✅ <code>{html.escape(u['api_ip'])}</code>" if u["api_ip"] else "⚠️ semua IP (sebaiknya diatur)"
+    cb_txt = (f"✅ <code>{html.escape(u['api_callback'])}</code>" if u["api_callback"]
+              else "⚠️ belum diatur (status hanya bisa dicek ulang)")
+    url = (f"{base}/api/h2h?memberID={uid}&pin=PIN&password={key}"
+           f"&product=KODE&dest=TUJUAN&refID=REFID")
+    text = ("🔌 <b>Koneksi H2H</b>\n"
+            "Sambungkan software / server pulsa Anda (misalnya OtomaX) langsung ke "
+            f"{html.escape(config.STORE_NAME)}, tanpa lewat chat bot.\n\n"
+            "<b>1️⃣ Data akun H2H</b>\n"
+            f"👤 Member ID: <code>{uid}</code>\n"
+            f"🔑 Password / API Key: <code>{key}</code>\n"
+            f"🔐 PIN: {pin_txt}\n\n"
+            "<b>2️⃣ URL transaksi (format OtomaX)</b>\n"
+            f"<code>{html.escape(url)}</code>\n"
+            "Ganti <b>KODE</b>, <b>TUJUAN</b>, <b>REFID</b> dengan variabel di software Anda"
+            + (", dan <b>PIN</b> dengan PIN Anda" if u["pin_hash"] else " (PIN boleh dikosongkan)") + ".\n"
+            "📤 Contoh balasan: <code>R#REFID KODE.TUJUAN SUKSES. SN: 1234. Harga 6400. Saldo 43600</code>\n"
+            "💰 Cek saldo: URL yang sama tanpa product.\n\n"
+            "<b>3️⃣ Status koneksi</b>\n"
+            f"🌐 IP server: {ip_txt}\n"
+            f"🔔 Laporan status (callback): {cb_txt}\n"
+            f"📨 Format laporan: <b>{'OtomaX (GET teks)' if fmt == 'otomax' else 'JSON (mirip Digiflazz)'}</b>\n\n"
+            "🧩 Software Anda memakai format Digiflazz? Pakai endpoint "
+            f"<code>{html.escape(base)}/api/v1</code> (lihat dokumentasi).\n"
+            "⚠️ Jangan bagikan API Key ke siapa pun.")
+    kb = [[tg.btn("🌐 Atur IP Server", "h2h:ip"), tg.btn("🔔 Atur Callback", "h2h:cb")],
+          [tg.btn("📨 Format: " + ("JSON" if fmt == "otomax" else "OtomaX"), "h2h:fmt"),
+           tg.btn("🔄 Ganti API Key", "h2h:new")]]
+    if web_url():
+        kb.append([tg.url_btn("📖 Panduan lengkap", web_url("/docs/api"))])
+    tg.send(uid, text, kb=kb)
+
+
+def h2h_action(uid, action):
+    if action == "ip":
+        reset(uid, step="api_ip")
+        return tg.send(uid, "🌐 Kirim <b>IP publik server</b> Anda (pisahkan koma jika lebih dari satu).\n"
+                            "Contoh: <code>103.10.20.30</code>\nKetik <code>hapus</code> untuk mengizinkan semua IP, "
+                            "atau /batal.")
+    if action == "cb":
+        reset(uid, step="api_cb")
+        return tg.send(uid, "🔔 Kirim <b>URL laporan</b> (report URL) dari software Anda.\n"
+                            "Contoh: <code>http://103.10.20.30:6969/report</code>\n"
+                            "Ketik <code>hapus</code> untuk mematikan, atau /batal.")
+    if action == "fmt":
+        u = db.get_user(uid)
+        db.set_user_field(uid, "api_format", "json" if (u["api_format"] or "otomax") == "otomax" else "otomax")
+        return show_api(uid)
+    if action == "new":
+        return tg.send(uid, "🔄 Ganti API Key? Key lama langsung tidak berlaku dan harus diganti di software Anda.",
+                       kb=[[tg.btn("✅ Ya, ganti", "h2h:newok"), tg.btn("❌ Batal", "x")]])
+    if action == "newok":
+        tg.send(uid, "✅ API Key baru dibuat.")
+        return show_api(uid, regenerate=True)
+
+
+def save_api_ip(uid, text):
+    reset(uid)
+    if text.strip().lower() in ("hapus", "-", "semua"):
+        db.set_user_field(uid, "api_ip", None)
+        tg.send(uid, "✅ Semua IP diizinkan.")
+        return show_api(uid)
+    ips = [x.strip() for x in re.split(r"[,\s]+", text) if x.strip()]
+    def valid(x):
+        try:
+            ipaddress.ip_address(x)
+            return True
+        except ValueError:
+            return False
+    if not ips or not all(valid(x) for x in ips):
+        return tg.send(uid, "❌ Format IP tidak valid. Contoh: <code>103.10.20.30</code>. Coba lagi lewat 🌐 Atur IP Server.")
+    db.set_user_field(uid, "api_ip", ",".join(ips))
+    tg.send(uid, f"✅ IP disimpan: <code>{html.escape(','.join(ips))}</code>")
+    return show_api(uid)
+
+
+def save_api_cb(uid, text):
+    reset(uid)
+    text = text.strip()
+    if text.lower() in ("hapus", "-"):
+        db.set_user_field(uid, "api_callback", None)
+        tg.send(uid, "✅ Callback dimatikan.")
+        return show_api(uid)
+    if not re.match(r"https?://\S+$", text):
+        return tg.send(uid, "❌ URL harus diawali http:// atau https://. Coba lagi lewat 🔔 Atur Callback.")
+    db.set_user_field(uid, "api_callback", text[:300])
+    tg.send(uid, "✅ URL callback disimpan.")
+    return show_api(uid)
 
 
 def send_receipt(uid, ref, price=None):
@@ -901,6 +991,8 @@ def on_callback(q):
         if service.deposit_closed(ref, "FAILED", reason="transfer tidak ditemukan"):
             return service.notify_admins(f"❌ Deposit <code>{ref}</code> ditolak oleh <code>{uid}</code>.")
         return tg.send(uid, f"ℹ️ Deposit <code>{ref}</code> sudah diproses sebelumnya ({d['status']}).")
+    if data.startswith("h2h:"):
+        return h2h_action(uid, data[4:])
     if data.startswith("st:"):
         return send_receipt(uid, data[3:])
     if data.startswith("bp:"):
