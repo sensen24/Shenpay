@@ -1,0 +1,3 @@
+# Satu-satunya library tambahan: untuk membuat struk gambar.
+# Jika gagal terpasang, bot tetap jalan dan struk dikirim dalam bentuk teks.
+Pillow>=10.0

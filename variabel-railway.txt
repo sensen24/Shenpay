@@ -1,0 +1,60 @@
+# Salin ke Railway > service > Variables > Raw Editor, lalu ganti nilainya.
+# Baris yang diawali # hanyalah penjelasan. JANGAN taruh komentar di belakang nilai.
+
+# ===== Telegram (wajib) =====
+TELEGRAM_TOKEN=123456:ABC-dari-BotFather
+# ID Telegram admin (cek lewat @userinfobot). Lebih dari satu: pisahkan koma
+ADMIN_IDS=111111111
+STORE_NAME=ShenPay
+ADMIN_CONTACT=@sheantu88
+
+# ===== Digiflazz (wajib) =====
+DIGIFLAZZ_USERNAME=username_digiflazz
+# Mulai dengan Development Key + TESTING=true. Saat siap jualan: Production Key + TESTING=false
+DIGIFLAZZ_API_KEY=development_key_anda
+DIGIFLAZZ_TESTING=true
+# Kata rahasia bebas, harus sama dengan "Secret" webhook di dashboard Digiflazz
+DIGIFLAZZ_WEBHOOK_SECRET=ganti_kata_rahasia
+
+# ===== Tripay QRIS (deposit otomatis) =====
+TRIPAY_API_KEY=
+TRIPAY_PRIVATE_KEY=
+TRIPAY_MERCHANT_CODE=
+TRIPAY_SANDBOX=true
+TRIPAY_METHOD=QRIS
+CUSTOMER_EMAIL=email_anda@gmail.com
+
+# ===== Harga & bisnis (semua bisa diubah lagi di Web Admin > Pengaturan) =====
+# Untung per transaksi untuk tiap level (Rp)
+MARKUP_FLAT=1000
+MARKUP_RESELLER=700
+MARKUP_AGEN=400
+MARKUP_PERCENT=0
+# Komisi untuk upline setiap transaksi sukses downline
+KOMISI_UPLINE=100
+# Untung tagihan pascabayar (level Member)
+PASCA_MARKUP=2500
+# Kirim peringatan jika saldo supplier di bawah angka ini
+LOW_BALANCE_ALERT=300000
+DEPOSIT_MIN=10000
+DEPOSIT_MAX=5000000
+
+# ===== Supplier cadangan (opsional, format H2H OtomaX) =====
+# Kosongkan jika belum punya supplier kedua. Isi sesuai data dari supplier Anda.
+SUPPLIER2_NAME=
+# Contoh: http://123.45.67.89:6969/trx?product={product}&dest={dest}&refID={ref}&memberID={memberid}&pin={pin}&password={password}
+SUPPLIER2_URL=
+SUPPLIER2_MEMBERID=
+SUPPLIER2_PIN=
+SUPPLIER2_PASSWORD=
+# Contoh: http://123.45.67.89:6969/balance?memberID={memberid}&pin={pin}&password={password}
+SUPPLIER2_BALANCE_URL=
+# Kata rahasia untuk URL laporan: https://DOMAIN/callback/h2h/KATA_RAHASIA
+SUPPLIER2_SECRET=
+
+# ===== Server =====
+# WAJIB: buat Volume di Railway dengan mount path /data supaya saldo member tidak hilang
+DB_PATH=/data/pulsa.db
+TZ=Asia/Jakarta
+# PUBLIC_URL otomatis dari domain Railway. Isi hanya jika pakai domain sendiri:
+# PUBLIC_URL=https://pulsa.sheanbot.com
