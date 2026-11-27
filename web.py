@@ -100,6 +100,16 @@ ICONS = {
     "sliders": "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
     "out": "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
     "send": "M22 2L11 13M22 2l-7 20-4-9-9-4z",
+    "phone": "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2",
+    "signal": "M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 20V4",
+    "bolt": "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+    "wallet": "M3 7a2 2 0 0 1 2-2h14v4M3 7v12a2 2 0 0 0 2 2h15v-5M3 7h17v4M21 11h-4a2 2 0 0 0 0 4h4z",
+    "game": "M6 12h4M8 10v4M15 13h.01M18 11h.01M17.3 5H6.7a4 4 0 0 0-4 3.4L2 14a3 3 0 0 0 5.2 2.5L9 15h6l1.8 1.5A3 3 0 0 0 22 14l-.7-5.6A4 4 0 0 0 17.3 5z",
+    "receipt": "M4 2v20l3-2 3 2 3-2 3 2 3-2 2 2V2l-2 2-3-2-3 2-3-2-3 2zM8 8h8M8 12h8M8 16h5",
+    "check": "M20 6L9 17l-5-5",
+    "bell": "M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0",
+    "clock": "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2",
+    "share": "M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13",
 }
 
 
@@ -322,6 +332,48 @@ justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}.endcta
 justify-content:space-between;flex-wrap:wrap;gap:12px}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tabs a{padding:8px 14px;border-radius:999px;background:#fff;
 border:1px solid var(--line);color:var(--ink);font-weight:600;font-size:14px}.tabs a.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#mulai{padding-bottom:80px}.appband{background:var(--ink);color:#fff;padding:80px 0;overflow:hidden}
+.appgrid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.appband h2{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.12;max-width:16ch;margin:0 0 14px}
+.appband .sub{color:#AFC0DD;font-size:17px;max-width:46ch;margin:0 0 26px}
+.soon{display:inline-block;background:var(--volt);color:var(--ink);font-weight:800;font-size:13px;padding:5px 12px;
+border-radius:999px;margin-bottom:16px}
+.feat{list-style:none;padding:0;margin:0 0 30px;display:grid;gap:12px}.feat li{display:flex;gap:12px;align-items:flex-start;
+color:#DCE4F2}.feat svg.i{color:#5DE0AE;margin-top:2px}
+.stores{display:flex;gap:12px;flex-wrap:wrap}.store{display:flex;align-items:center;gap:12px;border:1.5px solid #3A4B72;
+border-radius:14px;padding:10px 18px;color:#fff}.store svg.i{width:26px;height:26px}.store small{display:block;color:#AFC0DD;
+font-size:12px}.store b{font-size:16px}.notify{display:inline-block;margin-top:18px;color:#7FE3BD;font-weight:600}
+.phones{position:relative;height:600px}.phone{position:absolute;width:270px;height:560px;border-radius:44px;background:#0B1222;
+padding:11px;box-shadow:0 40px 80px -20px #000a,inset 0 0 0 2px #2A3654}.phone .scr{background:#F5F7FA;border-radius:34px;
+height:100%;overflow:hidden;color:var(--ink);font-size:12px;position:relative}
+.phone.p1{left:6%;top:30px;z-index:2}.phone.p2{right:2%;top:0;transform:rotate(4deg)}
+.notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:84px;height:22px;border-radius:12px;background:#0B1222}
+.sbar{display:flex;justify-content:space-between;padding:12px 22px 4px;font-weight:700;font-size:12px}
+.ah{padding:10px 16px 6px}.ah small{color:var(--muted)}.ah b{display:block;font-size:15px}
+.bal{margin:8px 14px;background:var(--ink);color:#fff;border-radius:18px;padding:14px;border-left:5px solid var(--volt)}
+.bal small{color:#AFC0DD}.bal b{display:block;font-size:22px;margin:2px 0 10px}.bal .row{display:flex;gap:8px}
+.bal .row span{flex:1;text-align:center;background:#ffffff1f;border-radius:10px;padding:6px;font-weight:700;font-size:11px}
+.qg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:8px 14px}.qg div{background:#fff;border:1px solid var(--line);
+border-radius:14px;padding:10px 4px;text-align:center;font-weight:600;font-size:11px}.qg svg.i{display:block;margin:0 auto 4px;
+width:22px;height:22px;color:var(--jade)}.qg div:nth-child(3) svg.i,.qg div:nth-child(6) svg.i{color:#C98A00}
+.lt{padding:4px 16px;font-weight:700;font-size:12px}.li{display:flex;justify-content:space-between;align-items:center;
+margin:6px 14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px}.li small{display:block;
+color:var(--muted);font-size:10px}.li .pill{font-size:10px;padding:2px 8px}
+.tabbar{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;background:#fff;
+border-top:1px solid var(--line);padding:10px 0 16px}.tabbar svg.i{width:20px;height:20px;color:#9AA6B8}.tabbar .on{color:var(--jade)}
+.ok-scr{text-align:center;padding:30px 18px 0}.okc{width:72px;height:72px;border-radius:50%;background:#E3F6EE;margin:10px auto 14px;
+display:grid;place-items:center}.okc svg.i{width:38px;height:38px;color:var(--jade);stroke-width:3}.ok-scr h4{font-size:17px;margin:0}
+.ok-scr .amt{font-size:24px;font-weight:800;margin:6px 0 16px}.dl{background:#fff;border:1px solid var(--line);border-radius:14px;
+text-align:left;padding:4px 12px;margin-bottom:14px}.dl div{display:flex;justify-content:space-between;padding:7px 0;
+border-bottom:1px dashed #DDE3EB}.dl div:last-child{border:0}.dl span{color:var(--muted)}.abtn{display:block;border-radius:12px;
+padding:11px;font-weight:700;margin-bottom:8px}.abtn.pri{background:var(--jade);color:#fff}.abtn.sec{background:#E9EEF4}
+.prev{color:#7D8AA6;font-size:12px;margin-top:10px}
+.faq{max-width:780px;padding:72px 0 8px}.faq details{border-bottom:1px solid var(--line);padding:4px 0}
+.faq summary{cursor:pointer;list-style:none;padding:16px 0;font-weight:700;font-size:17px;display:flex;justify-content:space-between;gap:16px}
+.faq summary::-webkit-details-marker{display:none}.faq summary:after{content:"+";color:var(--jade);font-size:22px;line-height:1}
+.faq details[open] summary:after{content:"−"}.faq details p{margin:0 0 18px;color:#3B4760;max-width:64ch}
+@media (max-width:860px){.appgrid{grid-template-columns:1fr}.appband{padding:56px 0}.appband h2{font-size:27px}
+.phones{width:540px;height:600px;transform:scale(.62);transform-origin:top left;margin-bottom:-228px}}
 @media (max-width:860px){.hero{grid-template-columns:1fr;gap:40px;padding:16px 0 48px}.lnav nav a.hide{display:none}
 .cats{grid-template-columns:1fr 1fr}.cat:nth-child(3n){border-right:1px solid var(--line)}.cat:nth-child(2n){border-right:0}
 .cat:nth-last-child(-n+3){border-bottom:1px solid var(--line)}.cat:nth-last-child(-n+2){border-bottom:0}
@@ -339,7 +391,7 @@ CAT_INFO = [("Pulsa", "Pulsa", "Semua operator, masuk dalam hitungan detik"),
 
 def landing_nav(active=""):
     return (f"<div class=lnav><a class=b href=/>{logo(32, light=False)}<span>{e(config.STORE_NAME)}</span></a><nav>"
-            f"<a class=hide href=/harga>Daftar harga</a><a class=hide href=/#mulai>Cara mulai</a>"
+            f"<a class=hide href=/harga>Daftar harga</a><a class=hide href=/#aplikasi>Aplikasi</a><a class=hide href=/#mulai>Cara mulai</a>"
             f"<a href=/login>Masuk</a></nav></div>")
 
 
@@ -375,10 +427,11 @@ Cocok untuk konter, warung, dan reseller dari rumah.</p>
 <div><b>Gagal, saldo kembali</b><p>Transaksi yang gagal dikembalikan otomatis. Sistem juga mencoba supplier cadangan sebelum menyerah.</p></div>
 <div><b>Untung dari downline</b><p>Bagikan link referral Anda dan dapatkan komisi {rp(db.komisi())} dari setiap transaksi sukses mereka.</p></div>
 </section>
-<section id=mulai><h2 class=sec-h>Mulai dalam tiga langkah</h2><p class=sec-p>Tidak perlu aplikasi tambahan, cukup Telegram.</p>
+<section id=mulai><h2 class=sec-h>Mulai dalam tiga langkah</h2><p class=sec-p>Bisa langsung dipakai hari ini lewat Telegram, tanpa menunggu aplikasi.</p>
 <div class=steps><div class=step><b>Buka bot dan tekan Start</b><p>Akun Anda langsung dibuat, tanpa formulir.</p></div>
 <div class=step><b>Isi saldo lewat QRIS</b><p>Mulai dari {rp(config.DEPOSIT_MIN)}. Saldo masuk dalam hitungan detik.</p></div>
 <div class=step><b>Kirim nomor, pilih produk</b><p>Status dan SN dikirim otomatis, lengkap dengan struk untuk pembeli.</p></div></div></section>
+</div>{app_section(join)}<div class=lp>{faq_section()}
 <section class=endcta><div><h2>Siap mulai jualan hari ini?</h2><p>Daftar gratis, tanpa biaya bulanan.</p></div>
 <a class=btn href="{e(join)}">{icon('send')}Buka bot Telegram</a></section>
 <footer class=lfoot><span>© {time.strftime('%Y')} {e(config.STORE_NAME)}</span>
@@ -390,6 +443,62 @@ el.className='rl new';el.innerHTML='<span class=w></span><span class=p></span><s
 el.children[0].textContent=i.w;el.children[1].textContent=i.p;el.children[3].textContent=i.t;box.prepend(el);
 while(box.children.length>8)box.lastChild.remove();}});}}).catch(function(){{}});}}setInterval(tick,20000);}})();</script>"""
     return html_doc("Server pulsa otomatis", body, LANDING_CSS)
+
+
+def app_section(join):
+    def q(ic, label):
+        return f"<div>{icon(ic)}{label}</div>"
+    home_on = icon("home").replace("class=i", "class='i on'")
+    home = (f"<div class='phone p1' aria-hidden=true><div class=scr><div class=notch></div><div class=sbar><span>09.41</span>"
+            f"<span>▮▮▮</span></div><div class=ah><small>Selamat pagi</small><b>Konter Maju Jaya</b></div>"
+            f"<div class=bal><small>Saldo agen</small><b>Rp1.250.000</b><div class=row><span>Isi saldo</span>"
+            f"<span>Riwayat</span><span>Struk</span></div></div><div class=qg>{q('phone', 'Pulsa')}{q('signal', 'Data')}"
+            f"{q('bolt', 'Token PLN')}{q('wallet', 'E-Wallet')}{q('game', 'Game')}{q('receipt', 'Tagihan')}</div>"
+            f"<div class=lt>Transaksi terakhir</div>"
+            f"<div class=li><div><b>Telkomsel 50.000</b><small>0812•••••890 · 09.38</small></div><span class='pill ok'>Sukses</span></div>"
+            f"<div class=li><div><b>Token PLN 100.000</b><small>5321•••••901 · 09.31</small></div><span class='pill ok'>Sukses</span></div>"
+            f"<div class=tabbar>{home_on}{icon('list')}{icon('bell')}{icon('sliders')}</div>"
+            f"</div></div>")
+    done = (f"<div class='phone p2' aria-hidden=true><div class=scr><div class=notch></div><div class=sbar><span>09.38</span>"
+            f"<span>▮▮▮</span></div><div class=ok-scr><div class=okc>{icon('check')}</div><h4>Transaksi sukses</h4>"
+            f"<div class=amt>Rp51.200</div><div class=dl><div><span>Produk</span><b>Telkomsel 50.000</b></div>"
+            f"<div><span>Tujuan</span><b>0812•••••890</b></div><div><span>SN</span><b>0417 2983 5520</b></div>"
+            f"<div><span>Waktu</span><b>27/11 09.38</b></div></div><span class='abtn pri'>Bagikan struk</span>"
+            f"<span class='abtn sec'>Transaksi lagi</span></div></div></div>")
+    return f"""<section class=appband id=aplikasi><div class="lp appgrid"><div>
+<span class=soon>Segera hadir</span>
+<h2>Aplikasi {e(config.STORE_NAME)} untuk agen, di iOS dan Android.</h2>
+<p class=sub>Kami sedang menyiapkan aplikasi khusus agen agar transaksi makin cepat dari HP: satu ketukan untuk isi pulsa,
+struk langsung dibagikan ke pembeli, dan notifikasi setiap saldo masuk.</p>
+<ul class=feat><li>{icon('bolt')}<span>Transaksi pulsa, data, token, e-wallet, game, dan tagihan dari satu layar</span></li>
+<li>{icon('share')}<span>Struk dengan nama toko Anda, siap dibagikan lewat WhatsApp</span></li>
+<li>{icon('bell')}<span>Notifikasi deposit, transaksi sukses, dan komisi downline</span></li>
+<li>{icon('clock')}<span>Saldo dan riwayat sama dengan akun Telegram Anda, tidak perlu daftar ulang</span></li></ul>
+<div class=stores><span class=store>{icon('phone')}<span><small>Segera di</small><b>iOS</b></span></span>
+<span class=store>{icon('phone')}<span><small>Segera di</small><b>Android</b></span></span></div>
+<a class=notify href="{e(join)}">Mulai sekarang lewat Telegram, akun Anda langsung bisa dipakai di aplikasi nanti</a>
+</div><div><div class=phones>{home}{done}</div><p class=prev>Pratinjau tampilan aplikasi. Desain akhir dapat berubah.</p></div>
+</div></section>"""
+
+
+def faq_section():
+    items = [
+        ("Apakah daftar ShenPay berbayar?",
+         "Tidak. Daftar gratis lewat bot Telegram dan tanpa biaya bulanan. Anda cukup mengisi saldo untuk mulai bertransaksi."),
+        ("Berapa lama saldo QRIS masuk?",
+         "Biasanya dalam hitungan detik setelah pembayaran berhasil, tanpa perlu kirim bukti transfer."),
+        ("Bagaimana kalau transaksi gagal?",
+         "Sistem mencoba supplier cadangan lebih dulu. Jika tetap gagal, saldo Anda dikembalikan otomatis dan tercatat di mutasi."),
+        ("Bagaimana cara jadi Reseller atau Agen?",
+         "Hubungi admin lewat bot. Level Reseller dan Agen mendapat harga lebih murah di setiap transaksi."),
+        ("Bisakah dihubungkan ke aplikasi atau server saya?",
+         "Bisa. Tersedia API H2H dengan callback otomatis. Dokumentasinya ada di halaman /docs/api."),
+        ("Kapan aplikasi iOS dan Android tersedia?",
+         "Aplikasi sedang disiapkan. Sambil menunggu, semua fitur sudah bisa dipakai lewat bot Telegram dan web panel, "
+         "dan akun Anda nanti langsung terhubung ke aplikasi."),
+    ]
+    rows = "".join(f"<details><summary>{e(q_)}</summary><p>{e(a)}</p></details>" for q_, a in items)
+    return f"<section class=faq id=faq><h2 class=sec-h>Pertanyaan yang sering diajukan</h2>{rows}</section>"
 
 
 def public_prices(req):
