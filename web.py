@@ -71,7 +71,7 @@ td.act{white-space:normal;min-width:250px}td.act form{margin:2px 0}
 .search{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}.search input{flex:1;min-width:180px}
 .legend{display:flex;gap:16px;font-size:13px;color:var(--muted);margin-top:6px}.legend i{display:inline-block;width:10px;
 height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
-.empty{padding:28px;text-align:center;color:var(--muted)}
+.empty{padding:28px;text-align:center;color:var(--muted);white-space:normal!important}.app>div{min-width:0}
 .ref{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.ref code{font-size:14px;padding:8px 12px}
 @media (max-width:900px){.app{grid-template-columns:1fr}.side{position:fixed;bottom:0;top:auto;left:0;right:0;height:auto;
 flex-direction:row;padding:6px;z-index:10;overflow-x:auto;gap:2px;box-shadow:0 -4px 16px #14213D33}
@@ -1010,6 +1010,16 @@ def admin_products(req):
                 db.delete_supplier_price(s2, code)
                 msg = f"{code} dihapus dari {config.SUPPLIER2_NAME}."
     q = req.query.get("q", "")
+    status = ("<span class='pill ok'>Terhubung</span>" if config.digiflazz_ready()
+              else "<span class='pill pend'>Menunggu API Digiflazz</span>")
+    sup_box = (f"<div class=kpis><div class=kpi><small>Supplier utama</small><div class=v>Digiflazz</div>"
+               f"<div class=s>{status}</div></div><div class=kpi><small>Produk aktif</small><div class=v>"
+               f"{db.count_products()}</div><div class=s>sinkron otomatis tiap 6 jam</div></div>"
+               f"<div class=kpi><small>Untung per transaksi</small><div class=v>{rp(db.level_markup('member'))}</div>"
+               f"<div class=s>Member, ubah di Pengaturan</div></div><div class=kpi><small>Level harga</small>"
+               f"<div class=v>3</div><div class=s>Member, Reseller, Agen</div></div></div>")
+    empty = ("<tr><td colspan=6 class=empty>Belum ada produk. Daftar produk (pulsa, data, token PLN, e-wallet, game, "
+             "tagihan) akan terisi otomatis dari Digiflazz setelah API terhubung.</td></tr>")
     rows = ""
     for p in db.search_products(q, limit=300, include_hidden=True):
         opts = {o["supplier"]: o for o in db.supplier_options(p["code"])}
@@ -1028,10 +1038,10 @@ def admin_products(req):
                  f"<input type=hidden name=action value={'on' if p['admin_off'] else 'off'}>"
                  f"<button class={'sec' if p['admin_off'] else 'red'}>{'Tampilkan' if p['admin_off'] else 'Sembunyikan'}"
                  f"</button></form></td></tr>")
-    body = (f"{msg_box(msg)}<div class=box><h2>Produk</h2>"
+    body = (f"{msg_box(msg)}{sup_box}<div class=box><h2>Pengaturan produk</h2>"
             f"<form><input name=q value='{e(q)}' placeholder='Cari kode / nama / brand'> <button>Cari</button></form><br>"
             f"<table><tr><th>Kode</th><th>Produk</th><th>Harga Member / Reseller / Agen</th><th>Supplier (modal)</th>"
-            + (f"<th>{e(config.SUPPLIER2_NAME)}</th>" if s2 else "") + f"<th></th></tr>{rows}</table></div>")
+            + (f"<th>{e(config.SUPPLIER2_NAME)}</th>" if s2 else "") + f"<th></th></tr>{rows or empty}</table></div>")
     return page("Produk", body, req, "/admin/products")
 
 
