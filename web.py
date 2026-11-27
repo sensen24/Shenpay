@@ -301,8 +301,14 @@ padding:20px 0;gap:12px}.lnav nav{gap:22px}.lnav .b{display:flex;align-items:cen
 .hero p.lead{font-size:18px;color:#3B4760;max-width:46ch;margin:22px 0 28px}.cta{display:flex;gap:12px;flex-wrap:wrap}
 .cta .btn{padding:14px 20px;font-size:16px}.facts{display:flex;gap:36px;margin-top:36px}
 .facts b{display:block;font-size:26px;font-weight:800}.facts span{color:var(--muted);font-size:14px}
-.receipt{background:#fff;border-radius:6px 6px 0 0;padding:26px 24px 30px;box-shadow:0 30px 60px -20px #14213D40;
-position:relative;transform:rotate(1.2deg);max-width:380px;justify-self:center;width:100%}
+.receipt{background:#fff linear-gradient(#14213D14,transparent 16px);padding:26px 24px 30px;position:relative;
+width:calc(100% - 36px);margin:0 auto}
+.printer{position:relative;z-index:2;height:34px;background:linear-gradient(#25345a,#14213D);border-radius:16px 16px 12px 12px;
+margin-bottom:-6px;box-shadow:inset 0 1px 0 #ffffff1f}
+.printer .slot{position:absolute;left:14px;right:14px;bottom:7px;height:5px;border-radius:5px;background:#0B1222;
+box-shadow:inset 0 1px 2px #000}
+.printer .led{position:absolute;right:18px;top:9px;width:7px;height:7px;border-radius:50%;background:#5DE0AE;
+box-shadow:0 0 8px #5DE0AE}
 .receipt:after{content:"";position:absolute;left:0;right:0;bottom:-12px;height:12px;
 background:linear-gradient(-45deg,transparent 8px,#fff 0) 0 0/16px 12px repeat-x,linear-gradient(45deg,transparent 8px,#fff 0) 0 0/16px 12px repeat-x}
 .receipt h3{margin:0;text-align:center;font-size:16px;font-weight:800}.receipt .sub{text-align:center;color:var(--muted);
@@ -313,6 +319,8 @@ font-size:13px;margin:2px 0 14px;display:flex;justify-content:center;align-items
 .rl .w{color:var(--muted)}.rl .p{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rl .s{color:var(--jade-d);font-weight:700;font-size:13px}.rl .t{grid-column:2/4;color:var(--muted);font-size:13px}
 .rl.new{animation:print .6s ease-out}@keyframes print{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.rempty{border-top:1px dashed #C5CEDA;padding:28px 8px;text-align:center;display:grid;gap:6px;justify-items:center}
+.rempty svg.i{width:30px;height:30px;color:var(--jade)}.rempty b{font-size:15px}.rempty span{color:var(--muted);font-size:13px}
 .rfoot{border-top:1px dashed #C5CEDA;padding-top:12px;text-align:center;color:var(--muted);font-size:13px}
 .band{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:64px 0}
 .sec-h{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-bottom:10px}.sec-p{color:#3B4760;max-width:56ch;margin:0 0 32px}
@@ -376,8 +384,8 @@ padding:11px;font-weight:700;margin-bottom:8px}.abtn.pri{background:var(--jade);
 
 /* animasi: satu urutan saat halaman dibuka, lalu muncul saat di-scroll */
 @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
-@keyframes printin{from{clip-path:inset(0 0 100% 0);transform:rotate(1.2deg) translateY(-24px)}
-to{clip-path:inset(0 0 -24px 0);transform:rotate(1.2deg)}}
+@keyframes printin{from{clip-path:inset(0 0 100% 0);transform:translateY(-40px)}
+to{clip-path:inset(0 0 -24px 0);transform:none}}
 @keyframes float1{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
 @keyframes float2{0%,100%{transform:rotate(4deg) translateY(0)}50%{transform:rotate(4deg) translateY(-8px)}}
 @keyframes draw{from{stroke-dashoffset:30}to{stroke-dashoffset:0}}
@@ -408,7 +416,8 @@ border-bottom:1px solid transparent;transition:border-color .3s,box-shadow .3s}
 .navbtn:hover{background:var(--ink2);text-decoration:none}
 .prog{height:3px;background:linear-gradient(90deg,var(--jade),var(--volt));transform-origin:left;transform:scaleX(0)}
 /* gelombang sinyal */
-.rwrap{position:relative;justify-self:center;width:100%;max-width:380px;isolation:isolate}.rwrap .receipt{justify-self:auto}
+.rwrap{position:relative;justify-self:center;width:100%;max-width:400px;isolation:isolate;
+filter:drop-shadow(0 22px 26px #14213D26)}.rwrap .receipt{justify-self:auto}
 .rwrap:before{content:"";position:absolute;inset:8% -12% -6%;z-index:-1;border-radius:32px;
 background:linear-gradient(135deg,#0A9F6B1a,#F5B82E1f);filter:blur(28px)}
 .waves{position:absolute;inset:0;z-index:-1;pointer-events:none}.waves i{position:absolute;left:50%;top:45%;width:320px;
@@ -509,10 +518,21 @@ def landing(req):
                      f"<span>tingkat sukses 30 hari</span></div>")
     else:
         rate_fact = "<div><b>24 jam</b><span>proses otomatis</span></div>"
+    n_prod = db.count_products()
+    if n_prod:
+        f1 = f"<div><b class=count data-to='{n_prod}'>{n_prod:,}</b><span>produk aktif</span></div>"
+    else:
+        f1 = f"<div><b>{len(CAT_INFO)}</b><span>kategori produk</span></div>"
+    if month["trx"]:
+        f2 = f"<div><b class=count data-to='{month['trx']}'>{month['trx']:,}</b><span>transaksi sukses 30 hari</span></div>"
+    else:
+        f2 = "<div><b>QRIS</b><span>saldo masuk otomatis</span></div>"
+    facts = f1 + f2 + rate_fact
     items = ticker_items()
     lines = "".join(f"<div class=rl style='--i:{n}'><span class=w>{i['w']}</span><span class=p>{e(i['p'])}</span><span class=s>Sukses</span>"
                     f"<span class=t>{e(i['t'])}</span></div>" for n, i in enumerate(items)) or \
-        "<div class=rl><span></span><span class=p>Menunggu transaksi pertama</span><span></span></div>"
+        (f"<div class=rempty>{icon('receipt')}<b>Transaksi sukses tampil di sini</b>"
+         f"<span>Diperbarui otomatis setiap ada transaksi baru</span></div>")
     cats = "".join(f"<div class=cat style='--i:{n}'><b>{label}</b><span>{desc}</span>" +
                    (f"<span class=n>{counts[key]} produk</span>" if counts.get(key) else "<span>Segera hadir</span>") +
                    "</div>" for n, (key, label, desc) in enumerate(CAT_INFO))
@@ -523,10 +543,9 @@ def landing(req):
 <p class=lead>Isi saldo pakai QRIS, transaksi diproses otomatis 24 jam lewat beberapa supplier sekaligus, dan status dikirim dalam hitungan detik.
 Cocok untuk konter, warung, dan reseller dari rumah.</p>
 <div class=cta><a class=btn href="{e(join)}">{icon('send')}Daftar lewat Telegram</a><a class="btn sec" href=/harga>Lihat daftar harga</a></div>
-<div class=facts><div><b class=count data-to="{db.count_products()}">{db.count_products()}</b><span>produk aktif</span></div>
-<div><b class=count data-to="{month['trx']}">{month['trx']:,}</b><span>transaksi sukses 30 hari</span></div>{rate_fact}</div>
+<div class=facts>{facts}</div>
 </div>
-<div class=rwrap>
+<div class=rwrap><div class=printer aria-hidden=true><span class=led></span><span class=slot></span></div>
 <div class=receipt aria-label="Transaksi sukses terbaru"><h3>{e(config.STORE_NAME)}</h3>
 <div class=sub><span class=live></span>Transaksi sukses terbaru</div><div id=rlist>{lines}</div>
 <div class=rfoot>Nomor tujuan disamarkan demi privasi</div></div></div></section></div>
@@ -550,7 +569,7 @@ Cocok untuk konter, warung, dan reseller dari rumah.</p>
 </div>{footer(join)}
 <script>document.documentElement.classList.add('js');(function(){{
 var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-var io=new IntersectionObserver(function(es){{es.forEach(function(x){{if(x.isIntersecting){{x.target.classList.add('in');io.unobserve(x.target);}}}});}},{{threshold:.18}});
+var io=new IntersectionObserver(function(es){{es.forEach(function(x){{if(x.isIntersecting){{x.target.classList.add('in');io.unobserve(x.target);}}}});}},{{threshold:0,rootMargin:'0px 0px -8% 0px'}});
 document.querySelectorAll('.rv,.rvp').forEach(function(el){{io.observe(el);}});
 var hd=document.querySelector('.lhead'),pg=document.querySelector('.prog');function sc(){{var h=document.documentElement,
 m=h.scrollHeight-h.clientHeight;if(pg)pg.style.transform='scaleX('+(m>0?h.scrollTop/m:0)+')';if(hd)hd.classList.toggle('scrolled',h.scrollTop>8);}}
@@ -564,7 +583,8 @@ setTimeout(function(){{requestAnimationFrame(f);}},500);setTimeout(function(){{s
 function tick(){{fetch('/ticker.json').then(function(r){{return r.json()}}).then(function(d){{var box=document.getElementById('rlist');
 d.slice().reverse().forEach(function(i){{if(seen.has(i.id))return;seen.add(i.id);var el=document.createElement('div');
 el.className='rl new';el.innerHTML='<span class=w></span><span class=p></span><span class=s>Sukses</span><span class=t></span>';
-el.children[0].textContent=i.w;el.children[1].textContent=i.p;el.children[3].textContent=i.t;box.prepend(el);
+el.children[0].textContent=i.w;el.children[1].textContent=i.p;el.children[3].textContent=i.t;
+var em=box.querySelector('.rempty');if(em)em.remove();box.prepend(el);
 while(box.children.length>8)box.lastChild.remove();}});}}).catch(function(){{}});}}setInterval(tick,20000);}})();</script>"""
     return html_doc("Server pulsa otomatis", body, LANDING_CSS)
 
