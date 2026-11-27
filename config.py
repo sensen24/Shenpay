@@ -52,14 +52,15 @@ SUPPLIER2_SN = os.getenv("SUPPLIER2_SN", "").strip() or r"(?i)\bSN\s*[:=]?\s*([A
 SUPPLIER2_SECRET = os.getenv("SUPPLIER2_SECRET", "").strip()       # token rahasia di URL callback
 
 # --- Bisnis ---
-MARKUP_FLAT = _int("MARKUP_FLAT", 1000)        # untung per transaksi level Member (Rp)
-MARKUP_RESELLER = _int("MARKUP_RESELLER", 700)
-MARKUP_AGEN = _int("MARKUP_AGEN", 400)
+MARKUP_FLAT = _int("MARKUP_FLAT", 500)        # untung per transaksi level Member (Rp)
+MARKUP_RESELLER = _int("MARKUP_RESELLER", 150)
+MARKUP_AGEN = _int("MARKUP_AGEN", 100)
 MARKUP_PERCENT = _int("MARKUP_PERCENT", 0)     # untung tambahan dalam persen (semua level)
 KOMISI_UPLINE = _int("KOMISI_UPLINE", 100)     # komisi untuk upline per transaksi sukses downline
-PASCA_MARKUP = _int("PASCA_MARKUP", 2500)      # untung tagihan level Member
+PASCA_MARKUP = _int("PASCA_MARKUP", 500)      # untung tagihan level Member
 LOW_BALANCE_ALERT = _int("LOW_BALANCE_ALERT", 300000)
 BOT_USERNAME = ""  # diisi otomatis saat bot menyala
+PRICE_ROUND = _int("PRICE_ROUND", 1)  # 1 = harga jual persis modal + untung; 50/100 = dibulatkan ke atas
 DEPOSIT_MIN = _int("DEPOSIT_MIN", 10000)
 DEPOSIT_MAX = _int("DEPOSIT_MAX", 5000000)
 DEPOSIT_EXPIRE_MINUTES = _int("DEPOSIT_EXPIRE_MINUTES", 30)
