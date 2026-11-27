@@ -15,8 +15,27 @@ CATEGORIES = {"pulsa": "Pulsa", "data": "Data", "pln": "PLN", "ewallet": "E-Mone
 CUSTOMER_ERRORS = {"51", "52", "54", "57", "60", "63"}
 
 
-def _sign(extra):
-    return hashlib.md5(f"{config.DIGIFLAZZ_USERNAME}{config.DIGIFLAZZ_API_KEY}{extra}".encode()).hexdigest()
+def _sign(extra, key=None):
+    key = key or config.DIGIFLAZZ_API_KEY
+    return hashlib.md5(f"{config.DIGIFLAZZ_USERNAME}{key}{extra}".encode()).hexdigest()
+
+
+def _pricelist(cmd):
+    """Ambil daftar harga. Jika Development Key ditolak dan DIGIFLAZZ_PRICE_KEY diisi, pakai key itu."""
+    keys = [config.DIGIFLAZZ_API_KEY]
+    if config.DIGIFLAZZ_PRICE_KEY and config.DIGIFLAZZ_PRICE_KEY != config.DIGIFLAZZ_API_KEY:
+        keys.append(config.DIGIFLAZZ_PRICE_KEY)
+    res = None
+    for key in keys:
+        res = _post("/price-list", {"cmd": cmd, "username": config.DIGIFLAZZ_USERNAME, "sign": _sign("pricelist", key)})
+        data = res.get("data")
+        if isinstance(data, list) or str((data or {}).get("rc")) != "41":
+            return res
+    data = res.get("data") or {}
+    if str(data.get("rc")) == "41" and not config.DIGIFLAZZ_PRICE_KEY:
+        raise net.NetError("Signature ditolak untuk daftar harga. Tambahkan variabel DIGIFLAZZ_PRICE_KEY "
+                           "berisi Production Key di Railway (hanya dipakai membaca harga, transaksi tetap mode uji).")
+    return res
 
 
 def _post(path, payload):
@@ -41,7 +60,7 @@ def _active(p):
 
 def price_list():
     """Semua produk prabayar yang sedang aktif di Digiflazz (semua kategori) + pascabayar."""
-    res = _post("/price-list", {"cmd": "prepaid", "username": config.DIGIFLAZZ_USERNAME, "sign": _sign("pricelist")})
+    res = _pricelist("prepaid")
     data = res.get("data")
     if not isinstance(data, list):
         msg = data.get("message") if isinstance(data, dict) else str(res)
@@ -53,7 +72,7 @@ def price_list():
     } for p in data if p.get("category") and _active(p)]
 
     try:
-        res = _post("/price-list", {"cmd": "pasca", "username": config.DIGIFLAZZ_USERNAME, "sign": _sign("pricelist")})
+        res = _pricelist("pasca")
         pasca = res.get("data")
     except net.NetError as e:
         log.warning("price list pasca gagal: %s", e)

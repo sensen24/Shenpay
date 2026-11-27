@@ -22,6 +22,9 @@ ADMIN_CONTACT = os.getenv("ADMIN_CONTACT", "").strip()  # contoh: @username_admi
 # --- Digiflazz (supplier pulsa) ---
 DIGIFLAZZ_USERNAME = os.getenv("DIGIFLAZZ_USERNAME", "").strip()
 DIGIFLAZZ_API_KEY = os.getenv("DIGIFLAZZ_API_KEY", "").strip()
+# Opsional: Production Key khusus untuk mengambil daftar harga (sebagian akun Digiflazz menolak
+# daftar harga dengan Development Key: "Signature Anda salah"). Transaksi tetap memakai DIGIFLAZZ_API_KEY.
+DIGIFLAZZ_PRICE_KEY = os.getenv("DIGIFLAZZ_PRICE_KEY", "").strip()
 DIGIFLAZZ_TESTING = _bool("DIGIFLAZZ_TESTING", "true")  # true = mode uji Digiflazz (tidak memotong saldo asli)
 DIGIFLAZZ_WEBHOOK_SECRET = os.getenv("DIGIFLAZZ_WEBHOOK_SECRET", "").strip()
 DIGIFLAZZ_BASE = "https://api.digiflazz.com/v1"
