@@ -82,15 +82,20 @@ def image_receipt(t, shop, price=None):
     h = 190 + sum(18 + 30 * len(v) for _, v in body) + 120
     img = Image.new("RGB", (W, h), "#ffffff")
     d = ImageDraw.Draw(img)
-    d.rectangle([0, 0, W, 110], fill="#0f766e")
-    for i, line in enumerate(_wrap(d, shop, f_title, W - 2 * pad)[:2]):
-        d.text((pad, 22 + i * 36), line, font=f_title, fill="#ffffff")
+    d.rectangle([0, 0, W, 110], fill="#14213D")
+    d.rectangle([0, 104, W * 0.62, 110], fill="#0A9F6B")
+    d.rectangle([W * 0.62, 104, W, 110], fill="#F5B82E")
+    import brand
+    brand.draw_mark(img, pad, 25, 56, tile="#1E2D52")
+    for i, line in enumerate(_wrap(d, shop, f_title, W - 2 * pad - 72)[:2]):
+        d.text((pad + 72, 34 + i * 36 - (18 if i == 0 and len(_wrap(d, shop, f_title, W - 2 * pad - 72)) > 1 else 0)),
+               line, font=f_title, fill="#ffffff")
     d.text((pad, 128), "STRUK PEMBELIAN", font=f_small, fill="#64748b")
     y = 165
     for label, lines in body:
         d.text((pad, y + 2), label, font=f_lbl, fill="#64748b")
         for j, line in enumerate(lines):
-            color = "#0f766e" if label == "Status" else "#0f172a"
+            color = "#07875a" if label == "Status" else "#0f172a"
             d.text((pad + 190, y + j * 30), line, font=f_val, fill=color)
         y += 18 + 30 * len(lines)
         d.line([pad, y - 8, W - pad, y - 8], fill="#e2e8f0", width=1)

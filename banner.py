@@ -1,6 +1,7 @@
 """Banner sambutan bergambar untuk /start (warna & logo sama dengan web)."""
 import io
 
+import brand
 import config
 from receipt import Image, ImageDraw, _font
 
@@ -17,9 +18,8 @@ def welcome_png():
     img = Image.new("RGB", (W, H), INK)
     d = ImageDraw.Draw(img)
     # logo sinyal
-    for x, top, col in ((70, 112, MINT), (98, 88, MINT), (126, 62, VOLT)):
-        d.rounded_rectangle([x, top, x + 18, 140], radius=6, fill=col)
-    d.text((166, 70), config.STORE_NAME[:28], font=_font(52, True), fill="#ffffff")
+    brand.draw_mark(img, 70, 62, 84, tile="#1E2D52")
+    d.text((172, 72), config.STORE_NAME[:28], font=_font(52, True), fill="#ffffff")
     d.text((70, 196), "Pulsa, kuota, token listrik, e-wallet,", font=_font(34, True), fill="#ffffff")
     d.text((70, 244), "game, dan tagihan dalam satu bot.", font=_font(34, True), fill="#ffffff")
     d.text((70, 318), "Saldo QRIS otomatis   |   Multi-supplier   |   Proses 24 jam", font=_font(24), fill=MUTED)

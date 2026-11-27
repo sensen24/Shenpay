@@ -6,6 +6,7 @@ import secrets
 import time
 import urllib.parse
 
+import brand
 import config
 import db
 import service
@@ -119,11 +120,8 @@ def icon(name):
 
 
 def logo(size=28, light=True):
-    """Tanda merek: tiga batang sinyal, batang tertinggi warna kuning token."""
-    c1, c2 = ("#7FE3BD", "#F5B82E") if light else ("#0A9F6B", "#F5B82E")
-    return (f'<svg width="{size}" height="{size}" viewBox="0 0 28 28" aria-hidden=true><rect width=28 height=28 rx=8 '
-            f'fill="{"#ffffff14" if light else "#14213D"}"/><rect x=6 y=16 width=4 height=6 rx=1.5 fill="{c1}"/>'
-            f'<rect x=12 y=11 width=4 height=11 rx=1.5 fill="{c1}"/><rect x=18 y=6 width=4 height=16 rx=1.5 fill="{c2}"/></svg>')
+    """Logo ShenPay (huruf S dua warna). light=True untuk latar gelap."""
+    return brand.svg_mark(size, tile="#1E2D52" if light else brand.INK)
 
 
 class Req:
@@ -137,6 +135,11 @@ def html_doc(title, body, extra_css=""):
     return (200, {"Content-Type": "text/html; charset=utf-8"},
             f"<!doctype html><html lang=id><head><meta charset=utf-8><meta name=viewport content='width=device-width,"
             f"initial-scale=1'><meta name=theme-color content='#14213D'><title>{e(title)} | {e(config.STORE_NAME)}</title>"
+            f"<link rel=icon href=/favicon.svg type=image/svg+xml><link rel=apple-touch-icon href=/apple-touch-icon.png>"
+            f"<meta name=description content='{e(config.STORE_NAME)}: server pulsa otomatis untuk konter, warung, dan reseller.'>"
+            f"<meta property=og:title content='{e(config.STORE_NAME)}'><meta property=og:type content=website>"
+            f"<meta property=og:description content='Pulsa, kuota, token listrik, e-wallet, game, dan tagihan dalam satu bot Telegram.'>"
+            f"<meta property=og:image content='{e(config.PUBLIC_URL)}/og.png'><meta name=twitter:card content=summary_large_image>"
             f"{FONT}<style>{CSS}{extra_css}</style></head><body>{body}</body></html>")
 
 
@@ -1075,6 +1078,13 @@ def handle(method, path, query, form, cookies, ip):
         return public_prices(req)
     if path == "/ticker.json":
         return ticker_json(req)
+    if path == "/favicon.svg":
+        return 200, {"Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400"}, brand.favicon_svg()
+    if path in ("/apple-touch-icon.png", "/favicon.ico", "/logo.png"):
+        size = 1024 if path == "/logo.png" else 180
+        return 200, {"Content-Type": "image/png", "Cache-Control": "public, max-age=86400"}, brand.png_mark(size)
+    if path == "/og.png":
+        return 200, {"Content-Type": "image/png", "Cache-Control": "public, max-age=3600"}, brand.og_image(config.STORE_NAME)
     if path == "/login":
         if req.user and method == "GET":
             return redirect("/panel")
