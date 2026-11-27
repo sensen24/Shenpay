@@ -91,6 +91,9 @@ display:flex;flex-direction:column;justify-content:space-between}.auth .art h2{f
 
 ICONS = {
     "home": "M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z",
+    "plug": "M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4",
+    "coin": "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.4 0-2.5.8-2.5 2s1 1.6 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6.5v1.5M12 16v1.5",
+    "inbox": "M3 13h5l1.5 3h5L16 13h5M5 5h14l2 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z",
     "tag": "M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01",
     "code": "M8 6l-6 6 6 6M16 6l6 6-6 6",
     "chart": "M4 20V10M10 20V4M16 20v-7M22 20H2",
@@ -149,8 +152,12 @@ def page(title, body, req=None, active=""):
         return html_doc(title, f"<main style='margin:0 auto'>{body}</main>")
     u = req.user
     links = [("/panel", "Ringkasan", "home"), ("/panel/harga", "Harga", "tag"), ("/panel/api", "API", "code")]
-    admin = [("/admin", "Dashboard", "chart"), ("/admin/trx", "Transaksi", "list"), ("/admin/members", "Member", "users"),
-             ("/admin/products", "Produk", "box"), ("/admin/settings", "Pengaturan", "sliders")]
+    n_dep = len(db.list_deposits("REVIEW", 99)) if u["tg_id"] in config.ADMIN_IDS else 0
+    admin = [("/admin", "Dashboard", "chart"), ("/admin/trx", "Transaksi", "list"),
+             ("/admin/deposit", f"Deposit{f' ({n_dep})' if n_dep else ''}", "inbox"),
+             ("/admin/laba", "Keuntungan", "coin"), ("/admin/members", "Member", "users"),
+             ("/admin/products", "Produk", "box"), ("/admin/h2h", "H2H", "plug"),
+             ("/admin/settings", "Pengaturan", "sliders")]
 
     def a(h, t, i):
         return f'<a href="{h}" class="{"on" if h == active else ""}">{icon(i)}<span>{t}</span></a>'
@@ -926,6 +933,10 @@ def admin_home(req):
     if d["pending"]:
         alert = (f"<div class=msg style='background:#FFF4DC;border-color:#F5B82E'>{d['pending']} transaksi masih pending. "
                  f"<a href=/admin/trx>Periksa sekarang</a></div>")
+    n_dep = len(db.list_deposits("REVIEW", 99))
+    if n_dep:
+        alert += (f"<div class=msg style='background:#E6F7F0;border-color:#5DE0AE'>{n_dep} deposit menunggu dicek. "
+                  f"<a href=/admin/deposit>Cek sekarang</a></div>")
     body = (f"{alert}<div class=kpis><div class='kpi hero'><small>Laba bersih hari ini</small><div class=v>{rp(d['laba'])}</div>"
             f"<div class=s>{delta(d['laba'], y['laba'])}{'. ' if y['laba'] else ''}30 hari: {rp(m['laba'])}</div></div>"
             f"<div class=kpi><small>Omzet hari ini</small><div class=v>{rp(d['omzet'])}</div><div class=s>{d['trx']} transaksi "
@@ -1094,9 +1105,157 @@ SETTINGS = [("markup_member", "Untung Member (Rp)", config.MARKUP_FLAT),
             ("notif_gagal", "Notifikasi transaksi gagal ke admin (1 = aktif, 0 = mati)", 1)]
 
 
-def admin_settings(req):
+
+DEP_LABEL = {"UNPAID": "Belum bayar", "REVIEW": "Perlu dicek", "PAID": "Diterima", "EXPIRED": "Kedaluwarsa",
+             "FAILED": "Ditolak/batal"}
+
+
+def admin_deposit(req):
     msg = ""
     if req.method == "POST" and csrf_ok(req):
+        act, ref = req.form.get("action"), req.form.get("ref", "")
+        if act == "acc":
+            msg = "Deposit diterima, saldo member bertambah." if service.deposit_paid(ref, by_admin=req.user["tg_id"]) \
+                else "Deposit ini sudah diproses sebelumnya."
+        elif act == "reject":
+            msg = "Deposit ditolak, member diberi tahu." if service.deposit_closed(ref, "FAILED", reason="transfer tidak ditemukan") \
+                else "Deposit ini sudah diproses sebelumnya."
+        elif act == "info":
+            db.set_setting("manual_info", req.form.get("info", "").strip()[:500])
+            db.set_setting("manual_unique", "1" if req.form.get("unique") == "1" else "0")
+            msg = "Pengaturan deposit disimpan."
+    review = db.list_deposits("REVIEW", 50)
+
+    def accform(d):
+        return (f"<form method=post class=inline>{csrf(req)}<input type=hidden name=ref value='{e(d['merchant_ref'])}'>"
+                f"<button name=action value=acc>Terima</button></form> <form method=post class=inline>{csrf(req)}"
+                f"<input type=hidden name=ref value='{e(d['merchant_ref'])}'><button class=red name=action value=reject>"
+                f"Tolak</button></form>")
+    rrows = "".join(f"<div style='border:1px solid #E3E8F0;border-radius:12px;padding:14px;margin-bottom:10px'>"
+                    f"<div style='display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap'><div>"
+                    f"<b style='font-size:20px'>{rp(d['pay_amount'] or d['amount'])}</b><br>{e(d['name'] or '-')} "
+                    f"<span class=muted>({d['tg_id']}) &bull; {fmt_time(d['updated_at'])}</span><br>"
+                    f"<code>{e(d['merchant_ref'])}</code></div><div>{accform(d)}</div></div></div>" for d in review)
+    arows = "".join(f"<tr><td>{fmt_time(d['created_at'])}</td><td>{e(d['name'] or '-')}<br><span class=muted>{d['tg_id']}"
+                    f"</span></td><td class=num>{rp(d['pay_amount'] or d['amount'])}</td><td>"
+                    f"{'Manual' if d['reference'] == 'MANUAL' else 'QRIS otomatis'}</td><td><span class='pill "
+                    f"{'ok' if d['status'] == 'PAID' else 'bad' if d['status'] in ('FAILED', 'EXPIRED') else 'pend'}'>"
+                    f"{DEP_LABEL.get(d['status'], d['status'])}</span></td><td>"
+                    f"{accform(d) if d['status'] in ('UNPAID', 'EXPIRED') and d['reference'] == 'MANUAL' else ''}</td></tr>"
+                    for d in db.list_deposits(None, 60))
+    mode = ("QRIS otomatis (Tripay)" if config.tripay_ready() else
+            "Manual (QRIS/rekening sendiri)" if service.manual_ready() else "Belum aktif")
+    qris = "Terpasang" if db.get_setting("manual_qris") else "Belum ada (kirim /setqris di bot)"
+    uniq = db.get_setting("manual_unique") != "0"
+    body = (f"{msg_box(msg)}<div class=kpis><div class=kpi><small>Perlu dicek</small><div class=v>{len(review)}</div>"
+            f"<div class=s>cocokkan dengan mutasi</div></div><div class=kpi><small>Mode deposit</small><div class=v "
+            f"style='font-size:18px'>{e(mode)}</div><div class=s>QRIS: {e(qris)}</div></div></div>"
+            f"<div class=box><h2>Menunggu dicek</h2><p class=muted>Sebelum menekan Terima, pastikan uang dengan nominal yang sama "
+            f"benar-benar masuk di aplikasi bank / e-wallet Anda. Foto bukti dikirim ke Telegram admin.</p>"
+            f"{rrows or '<p class=empty>Tidak ada deposit yang menunggu.</p>'}</div>"
+            f"<div class=box><h2>Pengaturan deposit manual</h2><form method=post>{csrf(req)}"
+            f"<input type=hidden name=action value=info><p><label class=muted for=info>Info rekening / e-wallet "
+            f"(tampil ke member)</label><br><textarea id=info name=info rows=3 style='width:100%'>"
+            f"{e(db.get_setting('manual_info') or '')}</textarea></p><p><label><input type=checkbox name=unique value=1 "
+            f"{'checked' if uniq else ''}> Pakai kode unik 3 digit (memudahkan mencocokkan transfer)</label></p>"
+            f"<p class=muted>Gambar QRIS diganti lewat bot: ketik /setqris lalu kirim fotonya.</p>"
+            f"<button>Simpan</button></form></div>"
+            f"<div class=box><h2>Riwayat deposit</h2><table><tr><th>Waktu</th><th>Member</th><th class=num>Nominal</th>"
+            f"<th>Jenis</th><th>Status</th><th></th></tr>{arows or '<tr><td colspan=6 class=empty>Belum ada deposit.</td></tr>'}"
+            f"</table></div>")
+    return page("Deposit", body, req, "/admin/deposit")
+
+
+def admin_laba(req):
+    msg = ""
+    if req.method == "POST" and csrf_ok(req):
+        amt = int(re.sub(r"\D", "", req.form.get("amount", "")) or 0)
+        left = db.profit_summary()["left"]
+        if amt <= 0:
+            msg = "Jumlah tidak valid."
+        elif amt > left:
+            msg = f"Jumlah melebihi laba belum ditarik ({rp(left)}). Sisanya uang titipan member, tidak dicatat."
+        else:
+            db.add_withdrawal(amt, req.form.get("note", "").strip()[:80], req.user["tg_id"])
+            msg = f"Tarik laba {rp(amt)} dicatat."
+    today = service_day_start()
+    d, w, m = db.stats(today), db.stats(today - 6 * 86400), db.stats(today - 29 * 86400)
+    p = db.profit_summary()
+    dg = service.supplier_balances().get("digiflazz")
+    days = "".join(f"<tr><td>{time.strftime('%a %d/%m', time.localtime(ts))}</td><td class=num>{n}</td>"
+                   f"<td class=num>{rp(o)}</td><td class=num><b>{rp(l)}</b></td></tr>"
+                   for ts, o, l, n in reversed(db.daily_series(14, today)))
+    hist = "".join(f"<tr><td>{fmt_time(r['created_at'])}</td><td class=num>{rp(r['amount'])}</td>"
+                   f"<td>{e(r['note'] or '-')}</td></tr>" for r in db.withdrawals(30))
+    body = (f"{msg_box(msg)}<div class=kpis><div class='kpi hero'><small>Laba belum ditarik</small><div class=v>"
+            f"{rp(p['left'])}</div><div class=s>aman untuk Anda ambil</div></div>"
+            f"<div class=kpi><small>Hari ini</small><div class=v>{rp(d['laba'])}</div><div class=s>{d['trx']} transaksi</div></div>"
+            f"<div class=kpi><small>7 hari</small><div class=v>{rp(w['laba'])}</div><div class=s>{w['trx']} transaksi</div></div>"
+            f"<div class=kpi><small>30 hari</small><div class=v>{rp(m['laba'])}</div><div class=s>{m['trx']} transaksi</div></div>"
+            f"<div class=kpi><small>Total sejak awal</small><div class=v>{rp(p['total'])}</div><div class=s>sudah ditarik "
+            f"{rp(p['taken'])}</div></div><div class=kpi><small>Uang titipan member</small><div class=v>{rp(p['saldo_member'])}"
+            f"</div><div class=s>milik member, jangan ditarik</div></div><div class=kpi><small>Saldo Digiflazz</small>"
+            f"<div class=v>{rp(dg) if dg is not None else '-'}</div><div class=s>modal untuk transaksi</div></div></div>"
+            f"<div class=grid2 style='margin-bottom:18px'><div class=box><h2>Catat tarik laba</h2>"
+            f"<p class=muted>Setiap kali mengambil uang keuntungan dari rekening, catat di sini supaya angka "
+            f"\"belum ditarik\" tetap benar.</p><form method=post>{csrf(req)}<p><input name=amount placeholder='Jumlah, mis. 100000' "
+            f"style='width:100%'></p><p><input name=note placeholder='Catatan (opsional)' style='width:100%'></p>"
+            f"<button>Catat</button></form></div><div class=box><h2>Riwayat tarik</h2><table><tr><th>Waktu</th>"
+            f"<th class=num>Jumlah</th><th>Catatan</th></tr>{hist or '<tr><td colspan=3 class=empty>Belum ada.</td></tr>'}"
+            f"</table></div></div><div class=box><h2>Laba per hari (14 hari)</h2><table><tr><th>Tanggal</th>"
+            f"<th class=num>Transaksi</th><th class=num>Omzet</th><th class=num>Laba bersih</th></tr>{days}</table></div>")
+    return page("Keuntungan", body, req, "/admin/laba")
+
+
+def admin_h2h(req):
+    msg = ""
+    if req.method == "POST" and csrf_ok(req):
+        uid = int(req.form.get("tg_id", "0") or 0)
+        if req.form.get("action") == "off" and db.get_user(uid):
+            db.set_user_field(uid, "api_key", None)
+            tg.send(uid, "🔌 Koneksi H2H Anda dinonaktifkan oleh admin. Hubungi admin untuk info lebih lanjut.")
+            msg = f"API {uid} dinonaktifkan."
+    PILL_ON, PILL_OFF = "<span class='pill ok'>aktif</span>", "<span class='pill pend'>belum</span>"
+    rows = "".join(
+        f"<tr><td>{u['tg_id']}</td><td>{e(u['name'] or '-')}<br><span class=muted>{LEVEL_LABEL[u['level']]}</span></td>"
+        f"<td class=num>{rp(u['balance'])}</td><td>{e(u['api_ip'] or 'semua IP')}</td>"
+        f"<td>{PILL_ON if u['api_callback'] else PILL_OFF}"
+        f"<br><span class=muted>{'OtomaX' if (u['api_format'] or 'otomax') == 'otomax' else 'JSON'}</span></td>"
+        f"<td class=num>{u['api_trx']}</td><td><form method=post class=inline>{csrf(req)}<input type=hidden name=tg_id "
+        f"value={u['tg_id']}><button class=red name=action value=off>Nonaktifkan</button></form></td></tr>"
+        for u in db.api_users())
+    base = e(config.PUBLIC_URL or "https://DOMAIN")
+    body = (f"{msg_box(msg)}<div class=box><h2>Koneksi H2H reseller</h2><p class=muted>Reseller mengaktifkan H2H sendiri "
+            f"lewat bot (<code>/h2h</code>). Bagikan panduan ini ke calon reseller: <a href=/docs/api>{base}/docs/api</a></p>"
+            f"<p class=muted>URL format OtomaX: <code>{base}/api/h2h</code> &bull; Format JSON: <code>{base}/api/v1</code></p>"
+            f"<table><tr><th>ID</th><th>Nama</th><th class=num>Saldo</th><th>IP</th><th>Callback</th>"
+            f"<th class=num>Trx API 30 hr</th><th></th></tr>"
+            f"{rows or '<tr><td colspan=7 class=empty>Belum ada reseller yang memakai H2H.</td></tr>'}</table></div>")
+    return page("H2H", body, req, "/admin/h2h")
+
+
+def admin_settings(req):
+    msg = ""
+    if req.method == "POST" and csrf_ok(req) and req.form.get("action") == "sync":
+        try:
+            msg = f"{service.sync_products()} produk diperbarui dari Digiflazz."
+        except Exception as ex:  # noqa: BLE001
+            msg = f"Gagal sinkron: {ex}"
+    elif req.method == "POST" and csrf_ok(req) and req.form.get("action") == "backup":
+        import jobs
+        jobs.send_backup([req.user["tg_id"]])
+        msg = "Backup database dikirim ke Telegram Anda."
+    elif req.method == "POST" and csrf_ok(req) and req.form.get("action") == "broadcast":
+        text = req.form.get("text", "").strip()[:1500]
+        if text:
+            ids = db.all_user_ids()
+            for i in ids:
+                tg.send(i, f"📣 {html.escape(text)}")
+                time.sleep(0.05)
+            msg = f"Pengumuman dikirim ke {len(ids)} member."
+        else:
+            msg = "Isi pengumuman masih kosong."
+    elif req.method == "POST" and csrf_ok(req):
         for key, _, _ in SETTINGS:
             val = req.form.get(key, "").replace(",", ".").strip()
             try:
@@ -1106,7 +1265,17 @@ def admin_settings(req):
         msg = "Pengaturan disimpan & langsung berlaku."
     fields = "".join(f"<p>{label}<br><input name={key} value='{db.get_num(key, default):g}'></p>"
                      for key, label, default in SETTINGS)
-    body = (f"{msg_box(msg)}<div class=box><h2>Pengaturan harga & bisnis</h2>"
+    last = db.get_setting("last_sync")
+    mode = ("Mode uji (transaksi simulasi)" if config.DIGIFLAZZ_TESTING else "Mode jualan sungguhan")
+    body = (f"{msg_box(msg)}<div class=grid2 style='margin-bottom:18px'><div class=box><h2>Tindakan cepat</h2>"
+            f"<p class=muted>Digiflazz: {'terhubung' if config.digiflazz_ready() else 'belum diatur'} &bull; {mode}<br>"
+            f"Sinkron terakhir: {fmt_time(int(last)) if last else 'belum pernah'}</p>"
+            f"<form method=post class=inline>{csrf(req)}<button name=action value=sync>Sinkron produk sekarang</button></form> "
+            f"<form method=post class=inline>{csrf(req)}<button class=sec name=action value=backup>Kirim backup ke Telegram"
+            f"</button></form></div><div class=box><h2>Pengumuman ke semua member</h2><form method=post>{csrf(req)}"
+            f"<p><textarea name=text rows=3 style='width:100%' placeholder='Contoh: Harga pulsa Telkomsel turun hari ini!'>"
+            f"</textarea></p><button name=action value=broadcast>Kirim ke Telegram member</button></form></div></div>"
+            f"<div class=box><h2>Pengaturan harga & bisnis</h2>"
             f"<form method=post>{csrf(req)}{fields}<button>Simpan</button></form></div>")
     return page("Pengaturan", body, req, "/admin/settings")
 
@@ -1114,7 +1283,8 @@ def admin_settings(req):
 # ---------------- router ----------------
 ROUTES = {"/panel": (panel, False), "/panel/harga": (prices, False), "/panel/api": (api_page, False),
           "/admin": (admin_home, True), "/admin/trx": (admin_trx, True), "/admin/members": (admin_members, True),
-          "/admin/products": (admin_products, True), "/admin/settings": (admin_settings, True)}
+          "/admin/products": (admin_products, True), "/admin/settings": (admin_settings, True),
+          "/admin/deposit": (admin_deposit, True), "/admin/laba": (admin_laba, True), "/admin/h2h": (admin_h2h, True)}
 
 
 def handle(method, path, query, form, cookies, ip):

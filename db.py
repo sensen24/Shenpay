@@ -646,6 +646,19 @@ def review_deposit(merchant_ref):
                           "AND status IN ('UNPAID','EXPIRED')", (now(), merchant_ref)).rowcount == 1
 
 
+def list_deposits(status=None, limit=50):
+    q = ("SELECT d.*, u.name FROM deposits d LEFT JOIN users u ON u.tg_id=d.tg_id "
+         + ("WHERE d.status=? " if status else "") + "ORDER BY d.created_at DESC LIMIT ?")
+    return conn().execute(q, ((status, limit) if status else (limit,))).fetchall()
+
+
+def api_users():
+    return conn().execute(
+        "SELECT u.*, (SELECT COUNT(*) FROM transactions t WHERE t.tg_id=u.tg_id AND t.via='api' AND t.created_at>=?) "
+        "AS api_trx FROM users u WHERE u.api_key IS NOT NULL ORDER BY api_trx DESC, u.tg_id LIMIT 200",
+        (now() - 30 * 86400,)).fetchall()
+
+
 def open_manual_amounts():
     rows = conn().execute("SELECT pay_amount FROM deposits WHERE reference='MANUAL' "
                           "AND status IN ('UNPAID','REVIEW')").fetchall()
