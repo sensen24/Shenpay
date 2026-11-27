@@ -294,7 +294,7 @@ def ticker_items(limit=8):
 
 LANDING_CSS = """
 .lp{max-width:1140px;margin:0 auto;padding:0 24px}.lnav{display:flex;align-items:center;justify-content:space-between;
-padding:20px 0;gap:12px}.lnav .b{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;color:var(--ink)}
+padding:20px 0;gap:12px}.lnav nav{gap:22px}.lnav .b{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;color:var(--ink)}
 .lnav nav{display:flex;align-items:center;gap:22px}.lnav nav a{color:var(--ink);font-weight:500}
 .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:56px;align-items:center;padding:40px 0 72px}
 .hero h1{font-size:clamp(34px,5vw,54px);font-weight:800;letter-spacing:-.025em;line-height:1.06;max-width:16ch}
@@ -399,6 +399,78 @@ background-size:200% 100%;animation:shine 3.5s ease-in-out 1.5s infinite}
 .js .appband.in .phone{opacity:1;translate:0 0}.js .appband.in .phone.p2{transition-delay:.45s}
 @media (prefers-reduced-motion:reduce){.js .rv,.js .appband .phone{opacity:1;transform:none;translate:none}
 .okc svg path{stroke-dashoffset:0}}
+
+/* header menempel */
+.lhead{position:sticky;top:0;z-index:30;background:#F5F7FAd9;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+border-bottom:1px solid transparent;transition:border-color .3s,box-shadow .3s}
+.lhead.scrolled{border-color:var(--line);box-shadow:0 6px 24px -18px #14213D66}.lhead .lnav{padding:14px 24px}
+.navbtn{background:var(--ink);color:#fff!important;padding:9px 16px;border-radius:10px;font-weight:700}
+.navbtn:hover{background:var(--ink2);text-decoration:none}
+.prog{height:3px;background:linear-gradient(90deg,var(--jade),var(--volt));transform-origin:left;transform:scaleX(0)}
+/* gelombang sinyal */
+.rwrap{position:relative;justify-self:center;width:100%;max-width:380px;isolation:isolate}.rwrap .receipt{justify-self:auto}
+.waves{position:absolute;inset:0;z-index:-1;pointer-events:none}.waves i{position:absolute;left:50%;top:45%;width:320px;
+height:320px;margin:-160px;border-radius:50%;border:2px solid #0A9F6B40;animation:ping 5.4s cubic-bezier(.2,.6,.3,1) infinite}
+.waves i:nth-child(2){animation-delay:1.8s;border-color:#F5B82E55}.waves i:nth-child(3){animation-delay:3.6s}
+@keyframes ping{0%{transform:scale(.35);opacity:0}15%{opacity:1}100%{transform:scale(2);opacity:0}}
+/* pita produk */
+.marq{padding:8px 0 40px}.mlabel{color:var(--muted);font-size:14px;margin:0 0 14px}
+.mtrack{overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.mrow{display:flex;gap:56px;width:max-content;animation:marq 45s linear infinite}.mrow:hover{animation-play-state:paused}
+.mrow span{font-weight:800;font-size:21px;color:#8693A8;white-space:nowrap;letter-spacing:-.01em}
+@keyframes marq{to{transform:translateX(-50%)}}
+/* diagram cara kerja */
+.flow{padding:8px 0 72px}.fl{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:34px}
+.fline{position:absolute;left:12.5%;right:12.5%;top:33px;height:3px;background:#DDE3EB;border-radius:3px}
+.fline:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--jade),#5DE0AE);transform-origin:left;
+transform:scaleX(0);border-radius:3px}
+.pkt{position:absolute;top:50%;left:0;width:14px;height:14px;margin:-7px;border-radius:50%;background:var(--volt);
+box-shadow:0 0 0 6px #F5B82E38;opacity:0}
+.flow.in .fline:before{animation:fillx 7s linear infinite}.flow.in .pkt{animation:pkt 7s linear infinite}
+@keyframes fillx{0%{transform:scaleX(0);opacity:1}86%{transform:scaleX(1);opacity:1}100%{transform:scaleX(1);opacity:0}}
+@keyframes pkt{0%{left:0;opacity:0}4%{opacity:1}86%{left:100%;opacity:1}100%{left:100%;opacity:0}}
+.fn{position:relative;z-index:1;text-align:center}.fn b{display:block;font-size:16px;margin:14px 0 4px}
+.fn span{color:#3B4760;font-size:14px}.fi{display:inline-grid;place-items:center;width:66px;height:66px;border-radius:50%;
+background:#fff;border:2px solid var(--line);color:var(--ink)}.fi svg.i{width:26px;height:26px}
+.flow.in .fi{animation:light 7s infinite;animation-delay:calc(var(--i) * 2s)}
+@keyframes light{0%,100%{border-color:var(--line);color:var(--ink);box-shadow:none;transform:none}
+3%,16%{border-color:var(--jade);color:var(--jade);box-shadow:0 0 0 9px #0A9F6B1f;transform:scale(1.06)}}
+.fork{display:flex;gap:6px;justify-content:center;margin-top:10px}.fork em{font-style:normal;font-size:12px;font-weight:700;
+padding:4px 9px;border-radius:999px;background:#EEF2F7;color:var(--muted)}.fork em.on{background:#E3F6EE;color:var(--jade-d)}
+.flow.in .fork em{animation:swap 14s infinite}.flow.in .fork em.on{animation:swap2 14s infinite}
+@keyframes swap{0%,49%{background:#EEF2F7;color:var(--muted)}50%,100%{background:#E3F6EE;color:var(--jade-d)}}
+@keyframes swap2{0%,49%{background:#E3F6EE;color:var(--jade-d)}50%,100%{background:#EEF2F7;color:var(--muted)}}
+/* detail HP */
+.toast{position:absolute;left:10px;right:10px;top:-80px;z-index:5;display:flex;gap:10px;align-items:center;background:#fff;
+border-radius:16px;padding:10px 12px;box-shadow:0 12px 28px -10px #14213D59}.toast svg.i{width:18px;height:18px;color:#fff;
+background:var(--jade);border-radius:50%;padding:7px;box-sizing:content-box;flex:none}.toast b{display:block;font-size:12px}
+.toast small{color:var(--muted);font-size:10px}
+.appband.in .toast{animation:toast 10s cubic-bezier(.2,.8,.2,1) 2.2s infinite}
+@keyframes toast{0%{top:-80px}6%,30%{top:36px}36%,100%{top:-80px}}
+.qg div:first-child{position:relative;overflow:hidden}.qg div:first-child:after{content:"";position:absolute;left:50%;top:40%;
+width:40px;height:40px;margin:-20px;border-radius:50%;background:#0A9F6B40;transform:scale(0);opacity:0}
+.appband.in .qg div:first-child:after{animation:tap 10s ease-out 6s infinite}.appband.in .qg div:first-child{animation:press 10s 6s infinite}
+@keyframes tap{0%{transform:scale(0);opacity:.9}8%{transform:scale(3);opacity:0}100%{opacity:0}}
+@keyframes press{0%,100%{transform:none}2%{transform:scale(.94)}5%{transform:none}}
+.newi{max-height:0;opacity:0;margin-top:0;margin-bottom:0;padding-top:0;padding-bottom:0;border-width:0;overflow:hidden}
+.appband.in .newi{animation:newi 10s ease-out 6s infinite}
+@keyframes newi{0%,8%{max-height:0;opacity:0;padding-top:0;padding-bottom:0;margin-top:0;margin-bottom:0;border-width:0}
+14%,92%{max-height:60px;opacity:1;padding-top:8px;padding-bottom:8px;margin-top:6px;margin-bottom:6px;border-width:1px}
+100%{max-height:0;opacity:0;padding-top:0;padding-bottom:0;margin-top:0;margin-bottom:0;border-width:0}}
+/* footer */
+.lfoot2{background:var(--ink);color:#AFC0DD;margin-top:24px;padding:56px 0 0}.fgrid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;
+gap:32px}.fcol{display:flex;flex-direction:column;gap:10px}.fcol b{color:#fff;margin-bottom:4px}.fcol a{color:#C9D2E3}
+.fcol .b{display:flex;align-items:center;gap:10px;color:#fff;font-weight:800;font-size:18px}.fcol p{margin:6px 0 0;max-width:30ch}
+.fbase{border-top:1px solid #25345a;margin-top:44px;padding:20px 24px 28px;font-size:13px;color:#7D8AA6}
+@media (max-width:860px){.lhead .lnav{padding:12px 20px}.fl{grid-template-columns:1fr;gap:26px}.fline{left:32px;right:auto;
+top:33px;bottom:33px;width:3px;height:auto}.fline:before{transform-origin:top;transform:scaleY(0)}
+.flow.in .fline:before{animation:filly 7s linear infinite}.pkt{left:50%;top:0}.flow.in .pkt{animation:pkty 7s linear infinite}
+.fn{display:flex;gap:16px;text-align:left;align-items:flex-start}.fn b{margin:6px 0 4px}.fork{justify-content:flex-start}
+.fgrid{grid-template-columns:1fr 1fr}.fgrid .fcol:first-child{grid-column:1/-1}.mrow span{font-size:17px}.waves i{width:240px;height:240px;margin:-120px}}
+@keyframes filly{0%{transform:scaleY(0);opacity:1}86%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);opacity:0}}
+@keyframes pkty{0%{top:0;opacity:0}4%{opacity:1}86%{top:100%;opacity:1}100%{top:100%;opacity:0}}
+@media (prefers-reduced-motion:reduce){.mrow{animation:none;flex-wrap:wrap;width:auto}.newi{max-height:none;opacity:1}}
 @media (max-width:860px){.appgrid{grid-template-columns:1fr}.appband{padding:56px 0}.appband h2{font-size:27px}
 .phones{width:540px;height:600px;transform:scale(.62);transform-origin:top left;margin-bottom:-228px}}
 @media (max-width:860px){.hero{grid-template-columns:1fr;gap:40px;padding:16px 0 48px}.lnav nav a.hide{display:none}
@@ -417,9 +489,10 @@ CAT_INFO = [("Pulsa", "Pulsa", "Semua operator, masuk dalam hitungan detik"),
 
 
 def landing_nav(active=""):
-    return (f"<div class=lnav><a class=b href=/>{logo(32, light=False)}<span>{e(config.STORE_NAME)}</span></a><nav>"
-            f"<a class=hide href=/harga>Daftar harga</a><a class=hide href=/#aplikasi>Aplikasi</a><a class=hide href=/#mulai>Cara mulai</a>"
-            f"<a href=/login>Masuk</a></nav></div>")
+    return (f"<header class=lhead><div class='lp lnav'><a class=b href=/>{logo(32, light=False)}<span>{e(config.STORE_NAME)}</span>"
+            f"</a><nav><a class=hide href=/harga>Daftar harga</a><a class=hide href=/#cara>Cara kerja</a>"
+            f"<a class=hide href=/#aplikasi>Aplikasi</a><a class=navbtn href=/login>Masuk</a></nav></div>"
+            f"<div class=prog></div></header>")
 
 
 def landing(req):
@@ -442,7 +515,7 @@ def landing(req):
                    (f"<span class=n>{counts[key]} produk</span>" if counts.get(key) else "<span>Segera hadir</span>") +
                    "</div>" for n, (key, label, desc) in enumerate(CAT_INFO))
     join = bot_link()
-    body = f"""<div class=lp>{landing_nav()}
+    body = f"""{landing_nav()}<div class=lp>
 <section class=hero><div>
 <h1>Jualan pulsa, kuota, token listrik, dan tagihan dari satu bot Telegram.</h1>
 <p class=lead>Isi saldo pakai QRIS, transaksi diproses otomatis 24 jam lewat beberapa supplier sekaligus, dan status dikirim dalam hitungan detik.
@@ -451,9 +524,11 @@ Cocok untuk konter, warung, dan reseller dari rumah.</p>
 <div class=facts><div><b class=count data-to="{db.count_products()}">{db.count_products()}</b><span>produk aktif</span></div>
 <div><b class=count data-to="{month['trx']}">{month['trx']:,}</b><span>transaksi sukses 30 hari</span></div>{rate_fact}</div>
 </div>
+<div class=rwrap><div class=waves aria-hidden=true><i></i><i></i><i></i></div>
 <div class=receipt aria-label="Transaksi sukses terbaru"><h3>{e(config.STORE_NAME)}</h3>
 <div class=sub><span class=live></span>Transaksi sukses terbaru</div><div id=rlist>{lines}</div>
-<div class=rfoot>Nomor tujuan disamarkan demi privasi</div></div></section></div>
+<div class=rfoot>Nomor tujuan disamarkan demi privasi</div></div></div></section></div>
+{marquee()}
 <section class="band"><div class="lp rv"><h2 class=sec-h>Semua produk digital dalam satu saldo</h2>
 <p class=sec-p>Satu saldo untuk semua kebutuhan pelanggan Anda. Harga mengikuti level akun: makin sering transaksi, makin murah.</p>
 <div class=cats>{cats}</div></div></section>
@@ -462,6 +537,7 @@ Cocok untuk konter, warung, dan reseller dari rumah.</p>
 <div><b>Multi-supplier otomatis</b><p>Setiap transaksi dikirim ke supplier terbaik. Jika satu supplier sibuk, sistem langsung berpindah ke supplier lain tanpa Anda sadari.</p></div>
 <div><b>Untung dari downline</b><p>Bagikan link referral Anda dan dapatkan komisi {rp(db.komisi())} dari setiap transaksi sukses mereka.</p></div>
 </section>
+{flow_section()}
 <section id=mulai class=rv><h2 class=sec-h>Mulai dalam tiga langkah</h2><p class=sec-p>Bisa langsung dipakai hari ini lewat Telegram, tanpa menunggu aplikasi.</p>
 <div class=steps><div class=step><b>Buka bot dan tekan Start</b><p>Akun Anda langsung dibuat, tanpa formulir.</p></div>
 <div class=step><b>Isi saldo lewat QRIS</b><p>Mulai dari {rp(config.DEPOSIT_MIN)}. Saldo masuk dalam hitungan detik.</p></div>
@@ -469,12 +545,14 @@ Cocok untuk konter, warung, dan reseller dari rumah.</p>
 </div>{app_section(join)}<div class=lp>{faq_section()}
 <section class="endcta rv"><div><h2>Siap mulai jualan hari ini?</h2><p>Daftar gratis, tanpa biaya bulanan.</p></div>
 <a class=btn href="{e(join)}">{icon('send')}Buka bot Telegram</a></section>
-<footer class=lfoot><span>© {time.strftime('%Y')} {e(config.STORE_NAME)}</span>
-<span>{('Bantuan: ' + e(config.ADMIN_CONTACT)) if config.ADMIN_CONTACT else ''}</span></footer></div>
+</div>{footer(join)}
 <script>document.documentElement.classList.add('js');(function(){{
 var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 var io=new IntersectionObserver(function(es){{es.forEach(function(x){{if(x.isIntersecting){{x.target.classList.add('in');io.unobserve(x.target);}}}});}},{{threshold:.18}});
 document.querySelectorAll('.rv,.rvp').forEach(function(el){{io.observe(el);}});
+var hd=document.querySelector('.lhead'),pg=document.querySelector('.prog');function sc(){{var h=document.documentElement,
+m=h.scrollHeight-h.clientHeight;if(pg)pg.style.transform='scaleX('+(m>0?h.scrollTop/m:0)+')';if(hd)hd.classList.toggle('scrolled',h.scrollTop>8);}}
+window.addEventListener('scroll',sc,{{passive:true}});sc();
 document.querySelectorAll('.count').forEach(function(el){{var to=parseFloat(el.dataset.to)||0,dec=el.dataset.dec?1:0,
 suf=dec?'%':'';if(reduce||!to)return;var fin=el.textContent,t0=null,stop=false;function fmt(v){{return (dec?v.toFixed(1).replace('.',','):Math.round(v).toLocaleString('id-ID'))+suf;}}
 function f(t){{if(stop)return;if(!t0)t0=t;var p=Math.min((t-t0)/1400,1);el.textContent=fmt(to*(1-Math.pow(1-p,3)));
@@ -489,16 +567,60 @@ while(box.children.length>8)box.lastChild.remove();}});}}).catch(function(){{}})
     return html_doc("Server pulsa otomatis", body, LANDING_CSS)
 
 
+def marquee():
+    rows = db.conn().execute(f"SELECT brand, COUNT(*) n FROM catalog WHERE {db.VISIBLE} GROUP BY brand "
+                             "ORDER BY n DESC LIMIT 24").fetchall()
+    names = [r["brand"] for r in rows]
+    if len(names) < 5:  # belum sinkron produk: tampilkan kategori saja, jangan merek yang belum dijual
+        names = [label for _, label, _ in CAT_INFO]
+    items = "".join(f"<span>{e(n)}</span>" for n in names)
+    return (f"<section class=marq aria-label='Produk yang tersedia'><div class=lp><p class=mlabel>Produk yang tersedia "
+            f"di {e(config.STORE_NAME)}</p></div><div class=mtrack><div class=mrow>{items}<span aria-hidden=true></span>"
+            f"{items}<span aria-hidden=true></span></div></div></section>")
+
+
+def flow_section():
+    nodes = [("send", "Anda kirim pesanan", "Lewat bot Telegram, web, atau API"),
+             ("sliders", "ShenPay memilih supplier", "Yang termurah dan sedang aktif"),
+             ("signal", "Diproses ke operator", "Pulsa, kuota, token, atau tagihan"),
+             ("check", "SN dan struk terkirim", "Otomatis ke Telegram Anda")]
+    html_nodes = ""
+    for n, (ic, title, desc) in enumerate(nodes):
+        extra = ("<div class=fork><em class=on>Supplier utama</em><em>Supplier cadangan</em></div>" if n == 1 else "")
+        html_nodes += (f"<div class=fn style='--i:{n}'><span class=fi>{icon(ic)}</span><div><b>{title}</b>"
+                       f"<span>{desc}</span>{extra}</div></div>")
+    return (f"<section class='flow rv' id=cara><h2 class=sec-h>Cara kerja satu transaksi</h2>"
+            f"<p class=sec-p>Semua langkah berjalan otomatis dalam hitungan detik, siang maupun malam.</p>"
+            f"<div class=fl><div class=fline aria-hidden=true><i class=pkt></i></div>{html_nodes}</div></section>")
+
+
+def footer(join):
+    contact = ""
+    if config.ADMIN_CONTACT.startswith("@"):
+        contact = f"<a href='https://t.me/{e(config.ADMIN_CONTACT[1:])}'>Hubungi admin {e(config.ADMIN_CONTACT)}</a>"
+    return (f"<footer class=lfoot2><div class='lp fgrid'><div class=fcol><a class=b href=/>{logo(30)}"
+            f"<span>{e(config.STORE_NAME)}</span></a><p>Server pulsa otomatis untuk konter, warung, dan reseller di "
+            f"seluruh Indonesia.</p></div>"
+            f"<div class=fcol><b>Produk</b><a href=/harga>Daftar harga</a><a href=/#cara>Cara kerja</a>"
+            f"<a href=/#aplikasi>Aplikasi agen</a><a href=/docs/api>API H2H</a></div>"
+            f"<div class=fcol><b>Akun</b><a href='{e(join)}'>Daftar lewat Telegram</a><a href=/login>Masuk panel</a></div>"
+            f"<div class=fcol><b>Bantuan</b><a href=/#faq>Pertanyaan umum</a>{contact}</div></div>"
+            f"<div class='lp fbase'>© {time.strftime('%Y')} {e(config.STORE_NAME)}. Semua hak dilindungi.</div></footer>")
+
+
 def app_section(join):
     def q(ic, label):
         return f"<div>{icon(ic)}{label}</div>"
     home_on = icon("home").replace("class=i", "class='i on'")
-    home = (f"<div class='phone p1' aria-hidden=true><div class=scr><div class=notch></div><div class=sbar><span>09.41</span>"
+    home = (f"<div class='phone p1' aria-hidden=true><div class=scr><div class=notch></div>"
+            f"<div class=toast>{icon('bell')}<div><b>Saldo masuk Rp100.000</b><small>Deposit QRIS berhasil</small></div></div>"
+            f"<div class=sbar><span>09.41</span>"
             f"<span>▮▮▮</span></div><div class=ah><small>Selamat pagi</small><b>Konter Maju Jaya</b></div>"
             f"<div class=bal><small>Saldo agen</small><b>Rp1.250.000</b><div class=row><span>Isi saldo</span>"
             f"<span>Riwayat</span><span>Struk</span></div></div><div class=qg>{q('phone', 'Pulsa')}{q('signal', 'Data')}"
             f"{q('bolt', 'Token PLN')}{q('wallet', 'E-Wallet')}{q('game', 'Game')}{q('receipt', 'Tagihan')}</div>"
             f"<div class=lt>Transaksi terakhir</div>"
+            f"<div class='li newi'><div><b>XL 25.000</b><small>0819•••••204 · 09.42</small></div><span class='pill ok'>Sukses</span></div>"
             f"<div class=li><div><b>Telkomsel 50.000</b><small>0812•••••890 · 09.38</small></div><span class='pill ok'>Sukses</span></div>"
             f"<div class=li><div><b>Token PLN 100.000</b><small>5321•••••901 · 09.31</small></div><span class='pill ok'>Sukses</span></div>"
             f"<div class=tabbar>{home_on}{icon('list')}{icon('bell')}{icon('sliders')}</div>"
@@ -554,7 +676,7 @@ def public_prices(req):
     trs = "".join(f"<tr><td>{e(p['name'])}<div class=muted>{e(p['brand'])}</div></td><td><code>{e(p['code'])}</code></td>"
                   f"<td class=num><b>{'Cek tagihan' if p['kind'] == 'pasca' else rp(service.price_for(p, 'member'))}</b></td></tr>"
                   for p in rows[:600])
-    body = (f"<div class=lp>{landing_nav()}<h1 class=sec-h style='margin-top:12px'>Daftar harga</h1>"
+    body = (f"{landing_nav()}<div class=lp><h1 class=sec-h style='margin-top:12px'>Daftar harga</h1>"
             f"<p class=sec-p>Harga untuk level Member. Reseller dan Agen mendapat harga lebih murah setelah login.</p>"
             f"<form class=search><input type=hidden name=k value='{e(cat)}'><input name=q value='{e(q)}' "
             f"placeholder='Cari produk, misalnya telkomsel 10' aria-label='Cari produk'><button>Cari</button></form>"
