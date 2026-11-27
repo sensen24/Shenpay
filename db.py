@@ -724,7 +724,7 @@ def verify_login_code(tg_id, code):
 def create_session(tg_id):
     token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(16)
     conn().execute("INSERT INTO web_sessions(token,tg_id,csrf,expires) VALUES(?,?,?,?)",
-                   (_h(token), tg_id, csrf, now() + 7 * 86400))
+                   (_h(token), tg_id, csrf, now() + 30 * 86400))
     return token
 
 

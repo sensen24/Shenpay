@@ -22,6 +22,16 @@ def _open(req, timeout):
         raise NetError(str(e))
 
 
+def download(url, timeout=30, limit=5_000_000):
+    """Unduh file biner (mis. gambar dari Telegram). Return bytes."""
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "ShenPay/2.0"}),
+                                    timeout=timeout) as r:
+            return r.read(limit)
+    except Exception as e:
+        raise NetError(str(e))
+
+
 def request(method, url, data=None, headers=None, timeout=40):
     """Kirim request JSON, kembalikan dict hasil JSON."""
     headers = dict(headers or {})

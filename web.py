@@ -139,6 +139,7 @@ def html_doc(title, body, extra_css=""):
             f"<!doctype html><html lang=id><head><meta charset=utf-8><meta name=viewport content='width=device-width,"
             f"initial-scale=1'><meta name=theme-color content='#14213D'><title>{e(title)} | {e(config.STORE_NAME)}</title>"
             f"<link rel=icon href=/favicon.svg type=image/svg+xml><link rel=apple-touch-icon href=/apple-touch-icon.png>"
+            f"<link rel=manifest href=/manifest.webmanifest><meta name=apple-mobile-web-app-capable content=yes>"
             f"<meta name=description content='{e(config.STORE_NAME)}: server pulsa otomatis untuk konter, warung, dan reseller.'>"
             f"<meta property=og:title content='{e(config.STORE_NAME)}'><meta property=og:type content=website>"
             f"<meta property=og:description content='Pulsa, kuota, token listrik, e-wallet, game, dan tagihan dalam satu bot Telegram.'>"
@@ -671,18 +672,18 @@ def app_section(join):
             f"<div><span>Waktu</span><b>27/11 09.38</b></div></div><span class='abtn pri'>Bagikan struk</span>"
             f"<span class='abtn sec'>Transaksi lagi</span></div></div></div>")
     return f"""<section class="appband rvp" id=aplikasi><div class="lp appgrid"><div>
-<span class=soon>Segera hadir</span>
-<h2>Aplikasi {e(config.STORE_NAME)} untuk agen, di iOS dan Android.</h2>
-<p class=sub>Kami sedang menyiapkan aplikasi khusus agen agar transaksi makin cepat dari HP: satu ketukan untuk isi pulsa,
-struk langsung dibagikan ke pembeli, dan notifikasi setiap saldo masuk.</p>
+<span class=soon>Sudah bisa dipasang</span>
+<h2>Aplikasi {e(config.STORE_NAME)} untuk agen, di iPhone dan Android.</h2>
+<p class=sub>Pasang langsung dari browser HP Anda, tanpa unduh dari toko aplikasi: isi pulsa dalam beberapa ketukan,
+struk langsung dibagikan ke pembeli, dan status transaksi diperbarui otomatis.</p>
 <ul class=feat><li>{icon('bolt')}<span>Transaksi pulsa, data, token, e-wallet, game, dan tagihan dari satu layar</span></li>
 <li>{icon('share')}<span>Struk dengan nama toko Anda, siap dibagikan lewat WhatsApp</span></li>
 <li>{icon('bell')}<span>Notifikasi deposit, transaksi sukses, dan komisi downline</span></li>
 <li>{icon('clock')}<span>Saldo dan riwayat sama dengan akun Telegram Anda, tidak perlu daftar ulang</span></li></ul>
-<div class=stores><span class=store>{icon('phone')}<span><small>Segera hadir di</small><b>iOS</b></span></span>
-<span class=store>{icon('tablet')}<span><small>Segera hadir di</small><b>Android</b></span></span></div>
-<a class=notify href="{e(join)}">Mulai sekarang lewat Telegram, akun Anda langsung bisa dipakai di aplikasi nanti</a>
-</div><div><div class=phones>{home}{done}</div><p class=prev>Pratinjau tampilan aplikasi. Desain akhir dapat berubah.</p></div>
+<div class=stores><a class=store href=/app>{icon('phone')}<span><small>Buka di Safari, lalu</small><b>Tambah ke Layar Utama</b></span></a>
+<a class=store href=/app>{icon('tablet')}<span><small>Buka di Chrome, lalu</small><b>Pasang aplikasi</b></span></a></div>
+<a class=notify href="{e(join)}">Belum punya akun? Daftar lewat Telegram, lalu masuk ke aplikasi dengan ID yang sama. Versi Play Store dan App Store menyusul.</a>
+</div><div><div class=phones>{home}{done}</div><p class=prev>Ilustrasi tampilan aplikasi.</p></div>
 </div></section>"""
 
 
@@ -756,7 +757,7 @@ def login(req):
                                 f"Abaikan jika bukan Anda yang meminta.")
             return redirect(f"/login/kode?id={u['tg_id']}")
     bot = f"@{config.BOT_USERNAME}" if config.BOT_USERNAME else "bot Telegram"
-    return auth_page("Masuk", f"<form method=post><h1>Masuk ke panel</h1>"
+    return auth_page("Masuk", f"<form method=post><h1>Masuk ke {e(config.STORE_NAME)}</h1>"
                               f"<p class=muted>Masukkan ID Telegram Anda. ID ada di menu ⚙️ Akun pada {e(bot)}.</p>"
                               f"{msg_box(msg)}<label for=tg class=muted>ID Telegram</label>"
                               f"<input id=tg name=tg_id inputmode=numeric autocomplete=off placeholder='Contoh: 123456789' "
@@ -770,7 +771,7 @@ def login_code(req):
         if db.verify_login_code(int(uid), req.form.get("code", "").strip()):
             token = db.create_session(int(uid))
             secure = "; Secure" if config.PUBLIC_URL.startswith("https") else ""
-            return redirect("/panel", f"{COOKIE}={token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax{secure}")
+            return redirect("/app", f"{COOKIE}={token}; HttpOnly; Path=/; Max-Age=2592000; SameSite=Lax{secure}")
         msg = "Kode salah atau sudah kedaluwarsa. Cek pesan terbaru dari bot."
     return auth_page("Kode login", f"<form method=post><h1>Masukkan kode</h1>"
                                    f"<p class=muted>Kode 6 angka sudah dikirim ke Telegram Anda. Berlaku 5 menit.</p>"
@@ -1326,9 +1327,17 @@ def handle(method, path, query, form, cookies, ip):
         return 200, {"Content-Type": "image/png", "Cache-Control": "public, max-age=86400"}, brand.png_mark(size)
     if path == "/og.png":
         return 200, {"Content-Type": "image/png", "Cache-Control": "public, max-age=3600"}, brand.og_image(config.STORE_NAME)
+    if path in ("/icon-192.png", "/icon-512.png"):
+        return 200, {"Content-Type": "image/png", "Cache-Control": "public, max-age=86400"}, \
+            brand.png_mark(192 if "192" in path else 512)
+    if path.startswith("/app") or path in ("/manifest.webmanifest", "/sw.js"):
+        import webapp
+        r = webapp.handle(req)
+        if r:
+            return r
     if path == "/login":
         if req.user and method == "GET":
-            return redirect("/panel")
+            return redirect("/app")
         return login(req)
     if path == "/login/kode":
         return login_code(req)

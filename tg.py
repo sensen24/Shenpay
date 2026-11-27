@@ -76,6 +76,22 @@ def photo_file(chat_id, png_bytes, caption=None, filename="struk.png", kb=None, 
     return _upload("sendPhoto", "photo", chat_id, filename, png_bytes, "image/png", caption, _markup(kb, reply_kb))
 
 
+def photo_bytes(chat_id, content, caption=None, filename="foto.jpg", ctype="image/jpeg", kb=None):
+    return _upload("sendPhoto", "photo", chat_id, filename, content, ctype, caption, _markup(kb))
+
+
+def file_bytes(file_id):
+    """Ambil isi file Telegram (mis. foto QRIS yang dikirim admin). Return bytes atau None."""
+    info = call("getFile", file_id=file_id)
+    if not info or not info.get("file_path"):
+        return None
+    try:
+        return net.download(f"https://api.telegram.org/file/bot{config.TELEGRAM_TOKEN}/{info['file_path']}")
+    except net.NetError as e:
+        log.warning("unduh file Telegram gagal: %s", e)
+        return None
+
+
 def document(chat_id, content, filename, caption=None):
     return _upload("sendDocument", "document", chat_id, filename, content, "application/octet-stream", caption)
 

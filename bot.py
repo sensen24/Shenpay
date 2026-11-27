@@ -681,7 +681,7 @@ def show_account(uid):
     kb = [[tg.btn("🔐 Atur PIN", "pin"), tg.btn("🏪 Nama Toko", "shop")],
           [tg.btn("🔌 Koneksi H2H", "apikey"), tg.btn("⚡ Format Cepat", "fmt")]]
     if web_url():
-        kb.append([tg.url_btn("🌐 Buka Web Panel", web_url("/login"))])
+        kb.append([tg.url_btn("📲 Buka Aplikasi ShenPay", web_url("/app"))])
     tg.send(uid, "\n".join(lines), kb=kb)
 
 
