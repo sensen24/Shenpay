@@ -140,6 +140,31 @@ def status_text():
     return "\n".join(lines)
 
 
+def public_ip():
+    """IP keluar server (yang dilihat Digiflazz). None jika gagal."""
+    for url in ("https://api.ipify.org?format=json", "https://api64.ipify.org?format=json"):
+        try:
+            ip = net.request("GET", url, timeout=10).get("ip")
+            if ip:
+                return ip
+        except net.NetError:
+            continue
+    return None
+
+
+def check_ip_change():
+    ip = public_ip()
+    if not ip:
+        return
+    old = db.get_setting("last_ip")
+    if old != ip:
+        db.set_setting("last_ip", ip)
+        if old:  # jangan kirim saat pertama kali
+            service.notify_admins(f"⚠️ <b>IP server berubah</b>\nLama: <code>{old}</code>\nBaru: <code>{ip}</code>\n\n"
+                                  f"Segera perbarui Whitelist IP di Digiflazz (Atur Koneksi → API), "
+                                  f"kalau tidak transaksi akan ditolak Digiflazz.")
+
+
 def daily_tasks():
     """Laporan & backup sekali sehari, setelah lewat tengah malam."""
     today = day_start()
@@ -170,6 +195,7 @@ def loop():
                 last_alert = time.time()
                 check_low_balance()
                 check_stuck()
+                check_ip_change()
             daily_tasks()
         except Exception:
             log.exception("Error worker")

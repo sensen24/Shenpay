@@ -810,7 +810,7 @@ def admin_panel(uid):
                  "/nonaktif KODE • /aktif KODE\n"
                  "/harga2 KODE SKU_SUPPLIER2 MODAL — harga supplier cadangan\n"
                  "/ban ID • /unban ID • /broadcast PESAN\n"
-                 "/laporan • /backup • /status\n"
+                 "/laporan • /backup • /status • /ip\n"
                  "/pending • /gagal — acc manual (sukseskan, gagalkan, kirim ulang)\n"
                  "/autoretry 1 3 — kirim ulang otomatis 1x jeda 3 menit\n"
                  "/notifgagal on|off",
@@ -961,6 +961,17 @@ def admin_command(uid, cmd, arg):
             if not t:
                 return tg.send(uid, "❌ Transaksi tidak ditemukan.")
             return send_trx_detail(uid, t)
+        if cmd == "/ip":
+            import jobs
+            ip = jobs.public_ip()
+            if not ip:
+                return tg.send(uid, "❌ Gagal membaca IP server. Coba lagi sebentar.")
+            db.set_setting("last_ip", ip)
+            return tg.send(uid, f"🌐 <b>IP server saat ini</b>\n<code>{ip}</code>\n\n"
+                                f"Salin IP ini ke Digiflazz → Atur Koneksi → API → Whitelist IP "
+                                f"(kolom Development IP dan Production IP).\n\n"
+                                f"⚠️ Di paket Railway biasa, IP ini bisa berubah setelah update/restart. "
+                                f"Bot akan memberi tahu Anda jika berubah.")
         if cmd == "/status":
             import jobs
             return tg.send(uid, jobs.status_text())
